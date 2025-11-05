@@ -1,0 +1,12 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+body {
+    font-family: system-ui, sans-serif;
+    line-height: 1.5;
+    color: #222;
+    background: #fafafa;
+    padding: 2rem;
+}
