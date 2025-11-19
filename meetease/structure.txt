@@ -64,8 +64,8 @@ D:.
 |       |   |   server-reference-manifest.json
 |       |   |   
 |       |   +---app
-|       |   |   |   page.js
-|       |   |   |   page.js.map
+|       |   |   |   page.jsx
+|       |   |   |   page.jsx.map
 |       |   |   |   page_client-reference-manifest.js
 |       |   |   |   
 |       |   |   \---page
@@ -2322,7 +2322,7 @@ D:.
 |   |   |       |       no-css-tags.d.ts
 |   |   |       |       no-css-tags.js
 |   |   |       |       no-document-import-in-page.d.ts
-|   |   |       |       no-document-import-in-page.js
+|   |   |       |       no-document-import-in-page.jsx
 |   |   |       |       no-duplicate-head.d.ts
 |   |   |       |       no-duplicate-head.js
 |   |   |       |       no-head-element.d.ts
@@ -14090,7 +14090,7 @@ D:.
 |   |           index.js
 |   |           parse.d.ts
 |   |           parse.js
-|   |           register.js
+|   |           register.jsx
 |   |           require.js
 |   |           stringify.d.ts
 |   |           stringify.js
@@ -14926,8 +14926,8 @@ D:.
 |   |   |   |   |       
 |   |   |   |   +---templates
 |   |   |   |   |       app-page.d.ts
-|   |   |   |   |       app-page.js
-|   |   |   |   |       app-page.js.map
+|   |   |   |   |       app-page.jsx
+|   |   |   |   |       app-page.jsx.map
 |   |   |   |   |       app-route.d.ts
 |   |   |   |   |       app-route.js
 |   |   |   |   |       app-route.js.map
@@ -15684,8 +15684,8 @@ D:.
 |   |   |   |   |   |   bfcache.js
 |   |   |   |   |   |   bfcache.js.map
 |   |   |   |   |   |   client-page.d.ts
-|   |   |   |   |   |   client-page.js
-|   |   |   |   |   |   client-page.js.map
+|   |   |   |   |   |   client-page.jsx
+|   |   |   |   |   |   client-page.jsx.map
 |   |   |   |   |   |   client-segment.d.ts
 |   |   |   |   |   |   client-segment.js
 |   |   |   |   |   |   client-segment.js.map
@@ -17245,7 +17245,7 @@ D:.
 |   |   |   |   |   |   client.node.unbundled.js
 |   |   |   |   |   |   index.js
 |   |   |   |   |   |   LICENSE
-|   |   |   |   |   |   node-register.js
+|   |   |   |   |   |   node-register.jsx
 |   |   |   |   |   |   package.json
 |   |   |   |   |   |   plugin.js
 |   |   |   |   |   |   server.browser.js
@@ -17268,7 +17268,7 @@ D:.
 |   |   |   |   |           react-server-dom-webpack-client.node.production.js
 |   |   |   |   |           react-server-dom-webpack-client.node.unbundled.development.js
 |   |   |   |   |           react-server-dom-webpack-client.node.unbundled.production.js
-|   |   |   |   |           react-server-dom-webpack-node-register.js
+|   |   |   |   |           react-server-dom-webpack-node-register.jsx
 |   |   |   |   |           react-server-dom-webpack-plugin.js
 |   |   |   |   |           react-server-dom-webpack-server.browser.development.js
 |   |   |   |   |           react-server-dom-webpack-server.browser.production.js
@@ -17287,7 +17287,7 @@ D:.
 |   |   |   |   |   |   client.node.unbundled.js
 |   |   |   |   |   |   index.js
 |   |   |   |   |   |   LICENSE
-|   |   |   |   |   |   node-register.js
+|   |   |   |   |   |   node-register.jsx
 |   |   |   |   |   |   package.json
 |   |   |   |   |   |   plugin.js
 |   |   |   |   |   |   server.browser.js
@@ -17310,7 +17310,7 @@ D:.
 |   |   |   |   |           react-server-dom-webpack-client.node.production.js
 |   |   |   |   |           react-server-dom-webpack-client.node.unbundled.development.js
 |   |   |   |   |           react-server-dom-webpack-client.node.unbundled.production.js
-|   |   |   |   |           react-server-dom-webpack-node-register.js
+|   |   |   |   |           react-server-dom-webpack-node-register.jsx
 |   |   |   |   |           react-server-dom-webpack-plugin.js
 |   |   |   |   |           react-server-dom-webpack-server.browser.development.js
 |   |   |   |   |           react-server-dom-webpack-server.browser.production.js
@@ -17806,8 +17806,8 @@ D:.
 |   |   |   |   |   |       types.js.map
 |   |   |   |   |   |       
 |   |   |   |   |   +---templates
-|   |   |   |   |   |       app-page.js
-|   |   |   |   |   |       app-page.js.map
+|   |   |   |   |   |       app-page.jsx
+|   |   |   |   |   |       app-page.jsx.map
 |   |   |   |   |   |       app-route.js
 |   |   |   |   |   |       app-route.js.map
 |   |   |   |   |   |       edge-app-route.js
@@ -18320,8 +18320,8 @@ D:.
 |   |   |   |   |   |   |   app-router.js.map
 |   |   |   |   |   |   |   bfcache.js
 |   |   |   |   |   |   |   bfcache.js.map
-|   |   |   |   |   |   |   client-page.js
-|   |   |   |   |   |   |   client-page.js.map
+|   |   |   |   |   |   |   client-page.jsx
+|   |   |   |   |   |   |   client-page.jsx.map
 |   |   |   |   |   |   |   client-segment.js
 |   |   |   |   |   |   |   client-segment.js.map
 |   |   |   |   |   |   |   dev-root-http-access-fallback-boundary.js
@@ -18606,8 +18606,8 @@ D:.
 |   |   |   |   |   |       is-dynamic-usage-error.js.map
 |   |   |   |   |   |       
 |   |   |   |   |   \---routes
-|   |   |   |   |           app-page.js
-|   |   |   |   |           app-page.js.map
+|   |   |   |   |           app-page.jsx
+|   |   |   |   |           app-page.jsx.map
 |   |   |   |   |           app-route.js
 |   |   |   |   |           app-route.js.map
 |   |   |   |   |           pages.js
@@ -20134,8 +20134,8 @@ D:.
 |   |   |   |           |       types.js.map
 |   |   |   |           |       
 |   |   |   |           +---page-path
-|   |   |   |           |       absolute-path-to-page.js
-|   |   |   |           |       absolute-path-to-page.js.map
+|   |   |   |           |       absolute-path-to-page.jsx
+|   |   |   |           |       absolute-path-to-page.jsx.map
 |   |   |   |           |       denormalize-app-path.js
 |   |   |   |           |       denormalize-app-path.js.map
 |   |   |   |           |       denormalize-page-path.js
@@ -20374,8 +20374,8 @@ D:.
 |   |   |   |   |       
 |   |   |   |   \---routes
 |   |   |   |           app-page.d.ts
-|   |   |   |           app-page.js
-|   |   |   |           app-page.js.map
+|   |   |   |           app-page.jsx
+|   |   |   |           app-page.jsx.map
 |   |   |   |           app-route.d.ts
 |   |   |   |           app-route.js
 |   |   |   |           app-route.js.map
@@ -22772,8 +22772,8 @@ D:.
 |   |   |   |       |       
 |   |   |   |       +---page-path
 |   |   |   |       |       absolute-path-to-page.d.ts
-|   |   |   |       |       absolute-path-to-page.js
-|   |   |   |       |       absolute-path-to-page.js.map
+|   |   |   |       |       absolute-path-to-page.jsx
+|   |   |   |       |       absolute-path-to-page.jsx.map
 |   |   |   |       |       denormalize-app-path.d.ts
 |   |   |   |       |       denormalize-app-path.js
 |   |   |   |       |       denormalize-app-path.js.map
@@ -24868,7 +24868,7 @@ D:.
 |   |   |   LICENSE
 |   |   |   package.json
 |   |   |   README.md
-|   |   |   register.js
+|   |   |   register.jsx
 |   |   |   
 |   |   +---lib
 |   |   |   |   config-loader.d.ts
@@ -24893,8 +24893,8 @@ D:.
 |   |   |   |   options.js
 |   |   |   |   options.js.map
 |   |   |   |   register.d.ts
-|   |   |   |   register.js
-|   |   |   |   register.js.map
+|   |   |   |   register.jsx
+|   |   |   |   register.jsx.map
 |   |   |   |   try-path.d.ts
 |   |   |   |   try-path.js
 |   |   |   |   try-path.js.map
@@ -24947,7 +24947,7 @@ D:.
 |   |   |               cli.js
 |   |   |               index.js
 |   |   |               parse.js
-|   |   |               register.js
+|   |   |               register.jsx
 |   |   |               require.js
 |   |   |               stringify.js
 |   |   |               unicode.js
@@ -26319,8 +26319,8 @@ D:.
     +---app
     |       globals.css
     |       layout.js
-    |       page.js
+    |       page.jsx
     |       
     \---lib
-            supabaseClient.js
+            client.js
             
