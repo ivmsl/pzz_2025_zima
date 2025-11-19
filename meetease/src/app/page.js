@@ -14,27 +14,34 @@ export default function Home() {
   return (
       <div className="flex min-h-screen flex-row ">
 
-        {/* Left Panel */}
-        <div className="flex-1/3 bg-sky-800 flex items-center justify-center p-4">
-          <div className="rounded-2xl p-12 flex flex-col items-center gap-6 max-w">
-            <Image src="/imgs/logo.png" alt="MeetEase Logo" width={600} height={600} />
-            <div className="text-center space-y-4">
-              <h1 className="text-5xl font-bold">
-                <span className="text-black text-8xl">Meet</span>
-                <span className="text-gray-200 text-8xl">Ease</span>
+          {/* Left Panel */}
+          <div className="w-2/3 h-screen bg-blue-500 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-0 
+                            aspect-square w-full max-w-[450px] justify-center">
+
+              <Image
+                src="/imgs/logo.png"
+                alt="MeetEase Logo"
+                width={300}
+                height={300}
+                className="object-contain"
+              />
+
+              <h1 className="text-center leading-none">
+                <span className="text-blue-500 text-8xl font-bold">Meet</span>
+                <span className="text-blue-500 text-8xl font-bold">Ease</span>
               </h1>
             </div>
           </div>
-        </div>
 
         {/* Right Panel */}
-        <div className="flex-1 bg-gray-200 flex flex-col items-center justify-center p-4">
+        <div className="flex-1 bg-gray-300 flex flex-col items-center justify-center p-4">
           <div className="max-w-md w-full space-y-8 flex flex-col justify-center gap-8">
 
             <div className="space-y-2">
-              <h2 className="text-8xl font-bold text-black">Planuj,</h2>
-              <h2 className="text-8xl font-bold text-black">Twórz,</h2>
-              <h2 className="text-8xl font-bold text-black">Zapraszaj</h2>
+              <h2 className="text-7xl font text-black">Planuj,</h2>
+              <h2 className="text-7xl font text-black">Twórz,</h2>
+              <h2 className="text-7xl font text-black">Zapraszaj</h2>
             </div>
 
             <p className="text-xl text-black">Dołącz do świata wydarzeń już dziś</p>
