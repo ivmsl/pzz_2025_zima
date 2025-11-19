@@ -16,8 +16,7 @@ export default function Home() {
 
           {/* Left Panel */}
           <div className="w-2/3 h-screen bg-blue-500 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-0 
-                            aspect-square w-full max-w-[450px] justify-center">
+            <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-0 aspect-square w-full max-w-[450px] justify-center">
 
               <Image
                 src="/imgs/logo.png"

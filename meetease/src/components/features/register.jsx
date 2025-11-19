@@ -41,7 +41,7 @@ export default function RegisterComponent({ onClose }) {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-start py-20 z-50">
       {/* Modal */}
-      <div className="bg-[#E6E6E6] p-12 rounded-3xl w-[460px] space-y-8 relative shadow-xl">
+      <div className="bg-gray-200 p-4 rounded-3xl w-[460px] space-y-8 relative shadow-xl">
 
         {/* Close button */}
         <button
@@ -52,10 +52,10 @@ export default function RegisterComponent({ onClose }) {
         </button>
 
         {/* Header */}
-        <h2 className="text-3xl font-semibold text-center mb-6">Utwórz konto</h2>
+        
 
         <div className="flex flex-col gap-4">
-          
+          <h2 className="text-3xl font-semibold text-center mb-6">Utwórz konto</h2>  
           {/* Username */}
           <input
             placeholder="Nazwa użytkownika"

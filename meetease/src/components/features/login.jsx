@@ -30,44 +30,52 @@ export default function LoginComponent({ onClose }) {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50">
       {/* Modal */}
-    <div className="bg-[#E6E6E6] p-10 rounded-3xl w-[420px] h-[300px] space-y-6 relative shadow-xl">
+    <div className="bg-gray-200 p-4 rounded-3xl w-[420px] h-[300px] relative shadow-xl">
         {/* Close button */}
+        
         <button
           onClick={onClose}
           className="absolute top-4 left-4 text-3xl text-black hover:text-gray-700"
         >
           ×
         </button>
+        <div className="flex flex-col gap-4 w-full flex-1 justify-center items-center">
+            <h2 className="text-3xl font-semibold text-center mt-2 flex-1">Logowanie</h2>
+            <form
+            className="flex flex-col gap-4 w-full flex-1 justify-center items-center"
+            onSubmit={e => {
+                e.preventDefault();
+                handleLogin();
+            }}
+            >
+            <input
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="border border-gray-400 p-3 rounded-xl bg-white w-full"
+            />
 
-        <h2 className="text-3xl font-semibold text-center mb-10">Logowanie</h2>
+            <input
+                placeholder="Hasło"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="border border-gray-400 p-3 rounded-xl bg-white w-full"
+            />
 
-        <div className="flex flex-col gap-4 mt-10">
-          <input
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="border border-gray-400 p-3 rounded-xl bg-white mt-10"
-          />
+            {error && (
+                <p className="text-red-600 text-sm text-center w-full">{error}</p>
+            )}
 
-          <input
-            placeholder="Hasło"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="border border-gray-400 p-3 rounded-xl bg-white"
-          />
-
-          {error && (
-            <p className="text-red-600 text-sm text-center">{error}</p>
-          )}
-
-          <Button
-            onClick={handleLogin}
-            className="w-full py-3 rounded-xl text-lg bg-blue-600 hover:bg-blue-700 mt-4"
-          >
-            Zaloguj
-          </Button>
+            <Button
+                type="submit"
+                className="w-full py-3 rounded-xl text-lg bg-blue-600 hover:bg-blue-700"
+            >
+                Zaloguj
+            </Button>
+            </form>
         </div>
+        
       </div>
     </div>
   )
