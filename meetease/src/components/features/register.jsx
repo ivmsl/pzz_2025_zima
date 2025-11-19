@@ -3,60 +3,108 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
-import {createClient} from "@/utils/supabase/client";
+import { createClient } from "@/utils/supabase/client"
 
 export default function RegisterComponent({ onClose }) {
-    const [email, setEmail] = useState("")
-    const [password, setPassword] = useState("")
-    const [error, setError] = useState("")
-    const router = useRouter()
-    const supabase = createClient()
+  const [username, setUsername] = useState("")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [error, setError] = useState("")
+  const router = useRouter()
+  const supabase = createClient()
 
-    const handleRegister = async () => {
-        setError("")
-        const { error } = await supabase.auth.signUp({
-            email,
-            password,
-        })
+  const handleRegister = async () => {
+    setError("")
 
-        if (error) {
-            setError(error.message)
-        } else {
-            onClose?.()
-            router.push("/dashboard")
-        }
+    if (password !== confirmPassword) {
+      setError("Hasła nie są takie same")
+      return
     }
 
-    return (
-        <div className="fixed inset-0 bg-black/50 flex justify-center items-center">
-            <div className="bg-white p-6 rounded-xl w-96 space-y-4">
-                <h2 className="text-2xl font-bold">Rejestracja</h2>
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { username }
+      }
+    })
 
-                <input
-                    placeholder="Email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                />
+    if (error) {
+      setError(error.message)
+    } else {
+      onClose?.()
+      router.push("/dashboard")
+    }
+  }
 
-                <input
-                    placeholder="Hasło"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                />
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-start py-20 z-50">
+      {/* Modal */}
+      <div className="bg-[#E6E6E6] p-12 rounded-3xl w-[460px] space-y-8 relative shadow-xl">
 
-                {error && <p className="text-red-600 text-sm">{error}</p>}
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 left-4 text-3xl text-black hover:text-gray-700"
+        >
+          ×
+        </button>
 
-                <div className="flex gap-3 pt-2">
-                    <Button className="w-full" onClick={handleRegister}>
-                        Zarejestruj
-                    </Button>
+        {/* Header */}
+        <h2 className="text-3xl font-semibold text-center mb-6">Utwórz konto</h2>
 
-                    <Button variant="outline" className="w-full" onClick={onClose}>
-                        Zamknij
-                    </Button>
-                </div>
-            </div>
+        <div className="flex flex-col gap-4">
+          
+          {/* Username */}
+          <input
+            placeholder="Nazwa użytkownika"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className="border border-gray-400 p-3 rounded-xl bg-white"
+          />
+
+          {/* Email */}
+          <input
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="border border-gray-400 p-3 rounded-xl bg-white"
+          />
+
+          {/* Extra spacing before password fields */}
+          <div className="mt-3 flex flex-col gap-4">
+            
+            <input
+              placeholder="Hasło"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="border border-gray-400 p-3 rounded-xl bg-white"
+            />
+
+            <input
+              placeholder="Powtórz hasło"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="border border-gray-400 p-3 rounded-xl bg-white"
+            />
+
+          </div>
+
+          {error && (
+            <p className="text-red-600 text-sm text-center">{error}</p>
+          )}
+
+          <Button
+            onClick={handleRegister}
+            className="w-full py-3 rounded-xl text-lg bg-blue-600 hover:bg-blue-700"
+          >
+            Utwórz konto
+          </Button>
         </div>
-    )
+      </div>
+    </div>
+  )
 }

@@ -39,9 +39,9 @@ export default function Home() {
           <div className="max-w-md w-full space-y-8 flex flex-col justify-center gap-8">
 
             <div className="space-y-2">
-              <h2 className="text-8xl font-bold text-black">Planuj,</h2>
-              <h2 className="text-8xl font-bold text-black">Twórz,</h2>
-              <h2 className="text-8xl font-bold text-black">Zapraszaj</h2>
+              <h2 className="text-7xl font text-black">Planuj,</h2>
+              <h2 className="text-7xl font text-black">Twórz,</h2>
+              <h2 className="text-7xl font text-black">Zapraszaj</h2>
             </div>
 
             <p className="text-xl text-black">Dołącz do świata wydarzeń już dziś</p>
