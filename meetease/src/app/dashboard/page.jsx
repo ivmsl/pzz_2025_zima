@@ -1,6 +1,6 @@
 import { createClient } from "@/utils/supabase/server"
 import { redirect } from "next/navigation"
-import { Button } from "@/components/ui/button"
+import DashboardContent from "@/components/features/dashboard-content"
 
 export default async function DashboardPage() {
     const supabase = await createClient()
@@ -21,14 +21,5 @@ export default async function DashboardPage() {
         redirect("/")
     }
 
-    return (
-        <div className="p-8">
-            <h1 className="text-4xl font-bold mb-4">Dashboard</h1>
-            <p className="mb-4">Zalogowany jako: {user.email}</p>
-
-            <form action={logout}>
-                <Button type="submit">Wyloguj</Button>
-            </form>
-        </div>
-    )
+    return <DashboardContent user={user} logout={logout} />
 }
