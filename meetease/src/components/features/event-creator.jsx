@@ -136,7 +136,7 @@ export default function EventCreatorComponent({ onClose, onSubmit }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 overflow-visible">
-      <div className="bg-white rounded-2xl shadow-xl w-[95vw] max-w-7xl h-[95vh] max-h-[95vh] overflow-x-visible relative flex flex-col">
+      <div className="bg-white rounded-2xl shadow-xl w-[95vw] max-w-7xl h-[85vh] max-h-[85vh] overflow-x-visible relative flex flex-col">
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b border-gray-200 flex-shrink-0">
           <h2 className="text-2xl font-semibold text-gray-900">Stwórz nowe Wydarzenie</h2>
@@ -150,11 +150,11 @@ export default function EventCreatorComponent({ onClose, onSubmit }) {
 
         {/* Form Content */}
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-          <div className="flex gap-8 overflow-y-auto overflow-x-visible flex-1 p-8 pb-12">
+          <div className="flex gap-8 overflow-y-auto overflow-x-visible flex-1 p-8 pb-6">
             {/* Left Section */}
-            <div className="flex-1 space-y-6 pb-8">
+            <div className="flex-1 pb-4">
               {/* Event Name */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3" style={{ marginBottom: '1rem', marginTop: '1.2rem' }}>
                 <Calendar className="w-5 h-5 text-gray-500 flex-shrink-0" />
                 <input
                   type="text"
@@ -167,7 +167,7 @@ export default function EventCreatorComponent({ onClose, onSubmit }) {
               </div>
 
               {/* Date */}
-              <div className="flex items-center gap-3 mt-8">
+              <div className="flex items-center gap-3" style={{ marginBottom: '1rem' }}>
                 <Calendar className="w-5 h-5 text-gray-500 flex-shrink-0" />
                 <input
                   type="text"
@@ -183,7 +183,7 @@ export default function EventCreatorComponent({ onClose, onSubmit }) {
               </div>
 
               {/* Start Time and End Time */}
-              <div className="flex gap-4 overflow-visible mt-8">
+              <div className="flex gap-4 overflow-visible" style={{ marginBottom: '1rem' }}>
                 <div className="flex items-center gap-3 flex-1 relative overflow-visible" ref={startTimeRef}>
                   <Clock className="w-5 h-5 text-gray-500 flex-shrink-0" />
                   <input
@@ -241,7 +241,7 @@ export default function EventCreatorComponent({ onClose, onSubmit }) {
               </div>
 
               {/* Location */}
-              <div className="flex items-center gap-3 mt-8">
+              <div className="flex items-center gap-3" style={{ marginBottom: '1rem' }}>
                 <MapPin className="w-5 h-5 text-gray-500 flex-shrink-0" />
                 <input
                   type="text"
@@ -253,7 +253,7 @@ export default function EventCreatorComponent({ onClose, onSubmit }) {
               </div>
 
               {/* Voting Option */}
-              <div className="flex items-center gap-2 pt-2">
+              <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
                   id="voting"
@@ -268,7 +268,7 @@ export default function EventCreatorComponent({ onClose, onSubmit }) {
             </div>
 
             {/* Right Section */}
-            <div className="flex-1 space-y-6 pb-8">
+            <div className="flex-1 space-y-6 pb-4">
               {/* Information Icon */}
               <div className="flex items-start gap-2">
                 <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0 mt-1">
@@ -287,7 +287,7 @@ export default function EventCreatorComponent({ onClose, onSubmit }) {
               </div>
 
               {/* Add Participants */}
-              <div className="relative">
+              <div className="relative" style={{ marginTop: '0.46rem' }}>
                 <select
                   value=""
                   onChange={(e) => {
@@ -313,6 +313,7 @@ export default function EventCreatorComponent({ onClose, onSubmit }) {
                     <span
                       key={index}
                       className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center gap-2"
+                      style={{ marginTop: '1rem' }}
                     >
                       {participant}
                       <button
