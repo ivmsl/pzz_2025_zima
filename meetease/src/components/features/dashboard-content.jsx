@@ -4,14 +4,8 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import EventCreatorComponent from "./event-creator"
 
-export default function DashboardContent({ user, logout }) {
+export default function DashboardContent({ user, logout, handleEventSubmit }) {
   const [showEventCreator, setShowEventCreator] = useState(false)
-
-  const handleEventSubmit = (eventData) => {
-    console.log("Event created:", eventData)
-    // TODO: Add API call to save event to database
-  }
-
   return (
     <div className="p-8">
       <div className="flex justify-between items-center mb-6">
@@ -33,6 +27,7 @@ export default function DashboardContent({ user, logout }) {
 
       {showEventCreator && (
         <EventCreatorComponent
+          user={user}
           onClose={() => setShowEventCreator(false)}
           onSubmit={handleEventSubmit}
         />

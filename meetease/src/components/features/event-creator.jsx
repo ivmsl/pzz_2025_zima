@@ -5,14 +5,15 @@ import { Button } from "@/components/ui/button"
 import { Calendar, Clock, MapPin, Info, X, ChevronDown } from "lucide-react"
 import TimePicker from "./time-picker"
 
-export default function EventCreatorComponent({ onClose, onSubmit }) {
+export default function EventCreatorComponent({ user, onClose, onSubmit }) {
   const [formData, setFormData] = useState({
-    eventName: "",
+    name: "",
     date: "",
     startTime: "",
     endTime: "",
     location: "",
     description: "",
+    creator_id: user.id,
     voting: false,
     participants: []
   })
@@ -159,8 +160,8 @@ export default function EventCreatorComponent({ onClose, onSubmit }) {
                 <input
                   type="text"
                   placeholder="Nazwa Wydarzenia"
-                  value={formData.eventName}
-                  onChange={(e) => handleChange("eventName", e.target.value)}
+                  value={formData.name}
+                  onChange={(e) => handleChange("name", e.target.value)}
                   className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
