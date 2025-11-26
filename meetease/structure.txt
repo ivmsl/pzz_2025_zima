@@ -6743,7 +6743,7 @@ D:.
 |   |   |   |       details.js
 |   |   |   |       deviceorientation.js
 |   |   |   |       devicepixelratio.js
-|   |   |   |       dialog.js
+|   |   |   |       dialog.jsx
 |   |   |   |       dispatchevent.js
 |   |   |   |       dnssec.js
 |   |   |   |       do-not-track.js
@@ -11449,7 +11449,7 @@ D:.
 |   |   |               button.js
 |   |   |               datalist.js
 |   |   |               details.js
-|   |   |               dialog.js
+|   |   |               dialog.jsx
 |   |   |               form.js
 |   |   |               h1.js
 |   |   |               h2.js
