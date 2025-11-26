@@ -6,8 +6,11 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
+    DialogClose, 
+    DialogTrigger
 } from "@/components/ui/dialog"
 import {ScrollArea} from "@/components/ui/scrollarea";
+import { Button } from "@/components/ui/button"
 
 
 //event details — przekazywac info o wydarzeniach do modalu 
@@ -38,7 +41,10 @@ const defaultAttendees = [
 
 export default function EventDetailsModal({user, event = defaultEvent, attendees = defaultAttendees}) {
     return (
-        <Dialog open={true}>
+        <Dialog>
+            <DialogTrigger asChild>
+                <Button variant="outline">{event.name}</Button>
+            </DialogTrigger>
             <form>
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader className={'!border-b-1 border-black pb-4'}>
@@ -75,9 +81,16 @@ export default function EventDetailsModal({user, event = defaultEvent, attendees
                         </div>
 
                     <DialogFooter className={'!border-t-1 border-black pt-4 !justify-between'}>
-                        {event.creator_id === user.id && <span className={'text-blue-500 cursor-pointer'}>Edytuj wydarzenie</span>}
+                        {event.creator_id === user.id &&  
+                        <DialogClose asChild>
+                            <span className={'text-blue-500 cursor-pointer'}>Edytuj wydarzenie</span>        
+                        </DialogClose>
+                        }
                         <span className={'text-red-500 cursor-pointer'}>Opuść wydarzenie</span>
                     </DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="outline">Close</Button>
+                    </DialogClose>
                 </DialogContent>
             </form>
         </Dialog>
