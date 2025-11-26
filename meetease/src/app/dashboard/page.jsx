@@ -1,7 +1,10 @@
 import { createClient } from "@/utils/supabase/server"
 import { redirect } from "next/navigation"
+
 import { Button } from "@/components/ui/button"
 import EventDetailsModal from "@/components/events/eventDetailsModal"
+import DashboardContent from "@/components/features/dashboard-content"
+
 
 export default async function DashboardPage() {
     const supabase = await createClient()
@@ -21,7 +24,6 @@ export default async function DashboardPage() {
     if (!user) {
         redirect("/")
     }
-
     return (
         <>
             <div className="p-8">
@@ -34,6 +36,7 @@ export default async function DashboardPage() {
 
             </div>
             <EventDetailsModal user={user}/>
+            <DashboardContent user={user} logout={logout} />
         </>
     )
 }

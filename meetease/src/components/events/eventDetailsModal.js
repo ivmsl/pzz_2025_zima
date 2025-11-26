@@ -9,37 +9,34 @@ import {
 } from "@/components/ui/dialog"
 import {ScrollArea} from "@/components/ui/scrollarea";
 
-export default function EventDetailsModal({user}) {
 
-    const event = {
-        id: 1,
-        name: "Sample Event",
-        description: "This is a sample event description.",
-        creator_id: "efd34e1a-bfbe-435e-b2be-9718b0736aa2",
-        date: "2024-07-01",
-        time: "18:00",
-        location: "Sample Location",
-    };
+//event details — przekazywac info o wydarzeniach do modalu 
+//wysyła rekwest z pobieraniem nadchodzących wydarzeń 
+//lista wszystkich wydarzeń — zwrot 
+// detali wydarzenia przekazywane 
+// członkowie wydarzenia taze przekazywane
+// oraz utworzymy stronę 
 
-    const attendees = [
-        { id: 1, name: "John Doe"},
-        { id: 2, name: "Jane Smith"},
-        { id: 3, name: "John Doe"},
-        { id: 4, name: "Jane Smith"},
-        { id: 5, name: "John Doe"},
-        { id: 6, name: "Jane Smith"},
-        { id: 7, name: "John Doe"},
-        { id: 8, name: "Jane Smith"},
-        { id: 9, name: "John Doe"},
-        { id: 10, name: "Jane Smith"},
-        { id: 11, name: "Jane Smith"},
-        { id: 12, name: "John Doe"},
-        { id: 13, name: "Jane Smith"},
-        { id: 14, name: "Jane Smith"},
-        { id: 15, name: "Jane Smith"},
-        { id: 16, name: "Jane Smith"}
-    ];
+const defaultEvent = {
+    id: "123e4567-e89b-12d3-a456-426614174000",
+    name: "Sample Event",
+    description: "This is a sample event description.",
+    creator_id: "efd34e1a-bfbe-435e-b2be-9718b0736aa2",
+    date: "2024-07-01",
+    time: "18:00",
+    location: "Sample Location",
+};
 
+const defaultAttendees = [
+    { id: 1, name: "John Doe"},
+    { id: 2, name: "Jane Smith"},
+    { id: 3, name: "John Doe"},
+    { id: 4, name: "Jane Smith"},
+    { id: 5, name: "John Doe"},
+    { id: 6, name: "Jane Smith"},
+];
+
+export default function EventDetailsModal({user, event = defaultEvent, attendees = defaultAttendees}) {
     return (
         <Dialog open={true}>
             <form>
