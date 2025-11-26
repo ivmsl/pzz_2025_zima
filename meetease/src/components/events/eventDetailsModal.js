@@ -65,7 +65,7 @@ export default function EventDetailsModal({user}) {
                             </div>
 
                             <h4 className="text-xl font-semi-bold">Uczestnicy:</h4>
-                            <ScrollArea className="max-h-64 rounded-md">
+                            <ScrollArea className="max-h-64 rounded-md" type="always">
                                 <div className="">
                                     {attendees.map((attendee) => (
                                         <React.Fragment key={attendee.id}>
