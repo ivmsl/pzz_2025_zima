@@ -19,6 +19,7 @@ async function handleCreateEventServerAction(eventData) {
 export default async function DashboardPage() {
     const { supabase, user, logout } = await getAuthenticatedUser()
     const events = await fetchEventsByUserId(user.id)
+    console.log("Events:", events)
 
     return (
         <>

@@ -81,12 +81,40 @@ export async function fetchEventsByUserId(userId) {
         .select("event_id")
         .eq("user_id", user.id)
 
+    let eventsUserIsAttendingData = []
     if (eventsUserIsAttendingError || !eventsUserIsAttending) {
-        return []
         console.log("Error:", eventsUserIsAttendingError)
+    } else {
+        const eventsUserIsAttendingArray = eventsUserIsAttending.map((event) => String(event.event_id))
+        let { data: eventsUserIsAttendingDB, error: eventsUserIsAttendingError } = await supabase
+            .from("events")
+            .select("*")
+            .in("id", eventsUserIsAttendingArray)
+
+        if (eventsUserIsAttendingError || !eventsUserIsAttendingData) {
+            console.log("Error:", eventsUserIsAttendingError)
+            eventsUserIsAttendingData = []
+        } else {
+            eventsUserIsAttendingData = eventsUserIsAttendingDB
+        }
+        console.log("Events user is attending data:", eventsUserIsAttendingData)
     }
 
-    return [...eventsCreatedByUser, ...eventsUserIsAttending]
+    // The original code has a scope issue: `eventsUserIsAttendingData` is re-declared as a local variable inside the `else` block,
+    // so its value is not accessible here. Fix by moving its declaration before the if/else, and assign to it instead of redeclaring.
+    const totalEvents = [
+        ...eventsCreatedByUser,
+        ...eventsUserIsAttendingData
+    ]
+
+
+    let totalEventsWithAttendees = []
+    for (const event of totalEvents) {
+        const attendees = await fetchEventAttendees(event.id, event.creator_id)
+        totalEventsWithAttendees.push({ ...event, attendees })
+    }
+
+    return totalEventsWithAttendees
 }
 
 /**

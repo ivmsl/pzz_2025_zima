@@ -40,6 +40,16 @@ const defaultAttendees = [
 ];
 
 export default function EventDetailsModal({user, event = defaultEvent, attendees = defaultAttendees}) {
+    if (attendees == defaultAttendees) {
+        try {
+            attendees = event.attendees
+            // console.log("Attendees:", attendees)
+        } catch (error) {
+            // console.error("Error fetching attendees:", error)
+            attendees = defaultAttendees
+        }
+    }
+
     return (
         <Dialog>
             <DialogTrigger asChild>
@@ -72,7 +82,7 @@ export default function EventDetailsModal({user, event = defaultEvent, attendees
                                 <div className="">
                                     {attendees.map((attendee) => (
                                         <React.Fragment key={attendee.id}>
-                                            <div className="text-sm">{attendee.name}</div>
+                                            <div className="text-sm">{attendee.username}</div>
                                         </React.Fragment>
                                     ))}
                                 </div>
@@ -81,11 +91,11 @@ export default function EventDetailsModal({user, event = defaultEvent, attendees
                         </div>
 
                     <DialogFooter className={'!border-t-1 border-black pt-4 !justify-between'}>
-                        {event.creator_id === user.id &&  
+                          
                         <DialogClose asChild>
                             <span className={'text-blue-500 cursor-pointer'}>Edytuj wydarzenie</span>        
                         </DialogClose>
-                        }
+                        
                         <span className={'text-red-500 cursor-pointer'}>Opuść wydarzenie</span>
                     </DialogFooter>
                     <DialogClose asChild>
