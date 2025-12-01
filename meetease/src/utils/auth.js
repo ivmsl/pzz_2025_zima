@@ -18,6 +18,20 @@ export async function getAuthenticatedUser() {
         redirect("/")
     }
 
+    if (user.user_metadata?.username) {
+        try {
+            await supabase
+                .from("profiles")
+                .update({
+                    username: user.user_metadata.username,
+                    email: user.email
+                })
+                .eq("id", user.id)
+        } catch (error) {
+            console.error("Failed to sync profile username:", error)
+        }
+    }
+
     return { supabase, user }
 }
 
