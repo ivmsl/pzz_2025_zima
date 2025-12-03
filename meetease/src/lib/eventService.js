@@ -39,6 +39,88 @@ export async function checkEventAccess(userId, eventId, creatorId) {
     return userEventAccess || isCreator
 }
 
+
+export async function leaveEvent(eventId, userId) {
+    const supabase = await createClient()
+    const { error: leaveError } = await supabase
+        .from("users_events")
+        .delete()
+        .eq("event_id", eventId)
+        .eq("user_id", userId)
+
+    if (leaveError) {
+        console.log("Error inside leaveEvent:", leaveError)
+        return { error: "Wystąpił błąd podczas opuszczania wydarzenia" }
+    }
+    return { success: true, error: null }
+}
+
+
+export async function fetchSharedCode(eventId) {
+    const supabase = await createClient()
+    console.log("Fetching shared code for event id:", eventId)
+    const { data: sharedCode, error: sharedCodeError } = await supabase
+        .from("event_codes")
+        .select("*")
+        .eq("event_id", String(eventId))
+        // .single()
+    
+        if (sharedCodeError || !sharedCode) {
+            console.log("Error inside fetchSharedCode:", sharedCodeError)
+            return null
+        }
+    return sharedCode
+}
+
+
+export async function joinEventByCode(code, userId) {
+    const supabase = await createClient()
+
+    // Check if event code is valid
+    const { data: eventCode, error: codeError } = await supabase
+        .from("event_codes")
+        .select("*")
+        .eq("code", code)
+        .single()
+
+    if (codeError || !eventCode) {
+        console.log("Error inside joinEventByCode:", codeError)
+        return { error: "Nieprawidłowy kod wydarzenia" }
+    }
+
+    // Check if event code is expired
+    const now = new Date()
+    if (eventCode.expire_at && new Date(eventCode.expire_at) < now) {
+        console.log("Event code expired")
+        return { error: "Ten kod wydarzenia wygasł" }
+    }
+
+    //Check if user is already attending the event
+    const { data: existing } = await supabase
+        .from("users_events")
+        .select("*")
+        .eq("event_id", eventCode.event_id)
+        .eq("user_id", userId)
+        .maybeSingle()
+    if (existing) {
+        return { error: "Już jesteś uczestnikiem tego wydarzenia" }
+    }
+
+    //Insert user into users_events table
+    const { error: insertError } = await supabase
+        .from("users_events")
+        .insert({
+            event_id: eventCode.event_id,
+            user_id: userId
+        })
+    if (insertError) {
+        console.log("Error inside joinEventByCode:", insertError)
+        return { error: "Wystąpił błąd podczas dołączania do wydarzenia" }
+    }
+
+    return { success: true, error: null }
+}
+
 /**
  * Fetch event by ID
  * @param {string} eventId - The event ID
@@ -59,8 +141,16 @@ export async function fetchEvent(eventId) {
         // console.log("Event not found", eventError)
         // return null
     }
-    
-    return event
+
+    sharedCode = await fetchSharedCode(eventId)
+    if (sharedCode) {
+        event.shared_code = sharedCode.code
+    }
+
+    const event_with_code = { ...event, shared_code: sharedCode }
+
+    console.log("Event with code:", event_with_code)
+    return event_with_code
 }
 
 export async function fetchEventsByUserId(userId) {
@@ -68,13 +158,20 @@ export async function fetchEventsByUserId(userId) {
 
     const { data: eventsCreatedByUser, error: eventsError } = await supabase
         .from("events")
-        .select("*")
+        .select("*, event_codes( code )")
         .eq("creator_id", user.id)
 
     if (eventsError || !eventsCreatedByUser) {
         console.log("Error:", eventsError)
         return []
     }
+
+    const eventsCreatedByUserWithCode = eventsCreatedByUser?.map(({ event_codes, ...event }) => ({
+        ...event,
+        code: event_codes?.at(0)?.code
+    }))
+
+    console.log("Events created by user WITH CODE:", eventsCreatedByUserWithCode)
 
     const { data: eventsUserIsAttending, error: eventsUserIsAttendingError } = await supabase
         .from("users_events")
@@ -103,7 +200,8 @@ export async function fetchEventsByUserId(userId) {
     // The original code has a scope issue: `eventsUserIsAttendingData` is re-declared as a local variable inside the `else` block,
     // so its value is not accessible here. Fix by moving its declaration before the if/else, and assign to it instead of redeclaring.
     const totalEvents = [
-        ...eventsCreatedByUser,
+        ...eventsCreatedByUserWithCode,
+        // ...eventsCreatedByUser,
         ...eventsUserIsAttendingData
     ]
 
