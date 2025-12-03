@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Calendar, Clock, MapPin, Info, X, ChevronDown } from "lucide-react"
 import TimePicker from "./time-picker"
 
-export default function EventCreatorComponent({ user, onClose, onSubmit }) {
+export default function EventCreatorComponent({ user, onClose, onSubmit, eventData = null, participants = [] }) {
   const [formData, setFormData] = useState({
     name: "",
     date: "",
@@ -33,6 +33,30 @@ export default function EventCreatorComponent({ user, onClose, onSubmit }) {
       ...prev,
       [field]: value
     }))
+  }
+
+  // if (eventData) {
+  //   const eventObjectFromData = {
+  //     name: eventData.name,
+  //     date: eventData.date,
+  //     startTime: eventData.time_start,
+  //     endTime: eventData.time_end,
+  //     location: eventData.location,
+  //     description: eventData.description,
+  //     creator_id: eventData.creator_id,
+  //     voting: false,
+  //     participants: participants
+  //   }
+  //   // console.log("Event data:", eventObjectFromData)
+  //   for (const [field, value] of Object.entries(eventObjectFromData)) {
+  //     handleChange(field, value)
+  //   }
+  // }
+
+  if (participants) {
+    participants.map((participant) => {
+      handleChange("participants", [...formData.participants, participant])
+    })
   }
 
   const validateDate = (dateString) => {

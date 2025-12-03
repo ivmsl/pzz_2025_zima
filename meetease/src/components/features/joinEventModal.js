@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 
-export default function JoinEventModal({ user, open, onClose, onSubmit }) {
+export default function JoinEventModal({ user, open, onClose, onJoinEvent }) {
     const supabase = createClientComponentClient()
     const [code, setCode] = useState("")
     const [loading, setLoading] = useState(false)
@@ -22,58 +22,20 @@ export default function JoinEventModal({ user, open, onClose, onSubmit }) {
         setError(null)
         setLoading(true)
 
-        const { data: eventCode, error: codeError } = await supabase
-            .from("event_codes")
-            .select("*")
-            .eq("code", code)
-            .single()
-
-        if (codeError || !eventCode) {
-            setError("Nieprawidłowy kod wydarzenia")
-            setLoading(false)
-            return
+        if (onJoinEvent) {
+            const { success, error } = await onJoinEvent(code, user.id)
+            if (error) {
+                setError(error)
+            } else {
+                setError(null)
+                onClose(false)
+                
+            }
+            console.log("Success:", success, "Error:", error)
         }
 
-        const now = new Date()
-        if (eventCode.expire_at && new Date(eventCode.expire_at) < now) {
-            setError("Ten kod wydarzenia wygasł")
-            setLoading(false)
-            return
-        }
-
-        const eventId = eventCode.event_id
-
-        const { data: existing } = await supabase
-            .from("user_events")
-            .select("*")
-            .eq("event_id", eventId)
-            .eq("user_id", user.id)
-            .maybeSingle()
-
-        if (existing) {
-            setError("Już jesteś uczestnikiem tego wydarzenia")
-            setLoading(false)
-            return
-        }
-
-        const { error: insertError } = await supabase
-            .from("user_events")
-            .insert({
-                event_id: eventId,
-                user_id: user.id
-            })
-
-        if (insertError) {
-            setError("Wystąpił błąd podczas dołączania do wydarzenia")
-            setLoading(false)
-            return
-        }
 
         setLoading(false)
-
-        if (onSubmit) {
-            onSubmit()
-        }
 
         onClose(false)
     }
