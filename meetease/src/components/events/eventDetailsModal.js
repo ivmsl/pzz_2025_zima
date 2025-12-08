@@ -10,7 +10,9 @@ import {
     DialogTrigger
 } from "@/components/ui/dialog"
 import {ScrollArea} from "@/components/ui/scrollarea";
+import EventCreatorComponent from "@/components/features/event-creator"
 import { Button } from "@/components/ui/button"
+import { useState } from "react"
 
 
 //event details — przekazywac info o wydarzeniach do modalu 
@@ -39,7 +41,10 @@ const defaultAttendees = [
     { id: 6, name: "Jane Smith"},
 ];
 
-export default function EventDetailsModal({user, event = defaultEvent, attendees = defaultAttendees}) {
+export default function EventDetailsModal({user, event = defaultEvent, attendees = defaultAttendees, serverActions}) {
+
+    const [showEventCreator, setShowEventCreator] = useState(false)
+
     if (attendees == defaultAttendees) {
         try {
             attendees = event.attendees
@@ -51,6 +56,7 @@ export default function EventDetailsModal({user, event = defaultEvent, attendees
     }
 
     return (
+        <>
         <Dialog>
             <DialogTrigger asChild>
                 <Button variant="outline">{event.name}</Button>
@@ -77,6 +83,14 @@ export default function EventDetailsModal({user, event = defaultEvent, attendees
                                 <p>{event.description}</p>
                             </div>
 
+                            <div>
+                                {event.code && (
+                                    <div>
+                                        <p>Kod wydarzenia:</p>
+                                        <p>{event.code}</p>
+                                    </div>
+                                )}
+                            </div>
                             <h4 className="text-xl font-semi-bold">Uczestnicy:</h4>
                             <ScrollArea className="max-h-64 rounded-md" type="always">
                                 <div className="">
@@ -91,12 +105,19 @@ export default function EventDetailsModal({user, event = defaultEvent, attendees
                         </div>
 
                     <DialogFooter className={'!border-t-1 border-black pt-4 !justify-between'}>
-                          
-                        <DialogClose asChild>
-                            <span className={'text-blue-500 cursor-pointer'}>Edytuj wydarzenie</span>        
-                        </DialogClose>
+                {event.creator_id === user.id &&                           
                         
+
+                        <span className={'text-blue-500 cursor-pointer'} >Edytuj wydarzenie</span>        
+                    
+                }
+                <DialogClose asChild> 
+                    <Button variant="outline" onClick={() => serverActions.handleLeaveEventServerAction(event.id, user.id)}>
                         <span className={'text-red-500 cursor-pointer'}>Opuść wydarzenie</span>
+                    </Button>
+                    
+                </DialogClose>
+                    
                     </DialogFooter>
                     <DialogClose asChild>
                         <Button variant="outline">Close</Button>
@@ -104,5 +125,16 @@ export default function EventDetailsModal({user, event = defaultEvent, attendees
                 </DialogContent>
             </form>
         </Dialog>
+
+        {/* {showEventCreator && (
+            <EventCreatorComponent
+                user={user}
+                onClose={() => setShowEventCreator(false)}
+                onSubmit={serverActions.handleCreateEventServerAction}
+                eventData={event}
+                participants={attendees}
+            />
+        )} */}
+    </>
     )
 }
