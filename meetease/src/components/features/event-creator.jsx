@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Calendar, Clock, MapPin, Info, X, ChevronDown } from "lucide-react"
 import TimePicker from "./time-picker"
+import { searchUsersByUsername, fetchAllUsers } from "@/lib/userSearchActions"
 
 export default function EventCreatorComponent({ user, onClose, onSubmit, eventData = null, participants = [] }) {
   const [formData, setFormData] = useState({
@@ -19,12 +20,24 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, eventDa
   })
   const [showStartTimePicker, setShowStartTimePicker] = useState(false)
   const [showEndTimePicker, setShowEndTimePicker] = useState(false)
+  const [participantSearchQuery, setParticipantSearchQuery] = useState("")
+  const [searchResults, setSearchResults] = useState([])
+  const [allUsers, setAllUsers] = useState([])
+  const [showParticipantDropdown, setShowParticipantDropdown] = useState(false)
+  const [isSearching, setIsSearching] = useState(false)
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false)
   const startTimeRef = useRef(null)
   const endTimeRef = useRef(null)
+  const participantSearchRef = useRef(null)
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    onSubmit?.(formData)
+    // Convert participant objects to IDs for submission
+    const submitData = {
+      ...formData,
+      participants: formData.participants.map(p => typeof p === 'object' ? p.id : p)
+    }
+    onSubmit?.(submitData)
     onClose?.()
   }
 
@@ -35,29 +48,12 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, eventDa
     }))
   }
 
-  // if (eventData) {
-  //   const eventObjectFromData = {
-  //     name: eventData.name,
-  //     date: eventData.date,
-  //     startTime: eventData.time_start,
-  //     endTime: eventData.time_end,
-  //     location: eventData.location,
-  //     description: eventData.description,
-  //     creator_id: eventData.creator_id,
-  //     voting: false,
-  //     participants: participants
-  //   }
-  //   // console.log("Event data:", eventObjectFromData)
-  //   for (const [field, value] of Object.entries(eventObjectFromData)) {
-  //     handleChange(field, value)
-  //   }
-  // }
-
-  if (participants) {
-    participants.map((participant) => {
-      handleChange("participants", [...formData.participants, participant])
-    })
-  }
+  // Initialize participants from props if provided
+  useEffect(() => {
+    if (participants && participants.length > 0) {
+      handleChange("participants", participants)
+    }
+  }, []) // Only run once on mount
 
   const validateDate = (dateString) => {
     if (!dateString || dateString.length !== 10) {
@@ -139,11 +135,73 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, eventDa
     }
   }
 
+  // Filter function to filter users based on search query
+  const filterUsers = useCallback((users, query) => {
+    if (!query || query.trim().length < 1) {
+      return users
+    }
+    const searchTerm = query.trim().toLowerCase()
+    return users.filter(user => 
+      user.username?.toLowerCase().includes(searchTerm) ||
+      user.email?.toLowerCase().includes(searchTerm)
+    )
+  }, [])
+
+  // Load all users when dropdown is opened
+  const loadAllUsers = useCallback(async () => {
+    if (allUsers.length > 0) {
+      // Already loaded, just filter them
+      const filtered = filterUsers(allUsers, participantSearchQuery)
+      const finalFiltered = filtered.filter(
+        (user) => 
+          user.id !== formData.creator_id &&
+          !formData.participants.some((p) => p.id === user.id)
+      )
+      setSearchResults(finalFiltered)
+      setShowParticipantDropdown(true)
+      return
+    }
+
+    setIsLoadingUsers(true)
+    try {
+      const users = await fetchAllUsers()
+      setAllUsers(users)
+      // Filter out already selected participants and current user
+      const filtered = filterUsers(users, participantSearchQuery)
+      const finalFiltered = filtered.filter(
+        (user) => 
+          user.id !== formData.creator_id &&
+          !formData.participants.some((p) => p.id === user.id)
+      )
+      setSearchResults(finalFiltered)
+      setShowParticipantDropdown(true)
+    } catch (error) {
+      console.error("Error loading users:", error)
+      setSearchResults([])
+    } finally {
+      setIsLoadingUsers(false)
+    }
+  }, [allUsers, participantSearchQuery, formData.creator_id, formData.participants, filterUsers])
+
+  // Update filtered results when search query changes
+  useEffect(() => {
+    if (allUsers.length > 0 && showParticipantDropdown) {
+      const filtered = filterUsers(allUsers, participantSearchQuery)
+      const finalFiltered = filtered.filter(
+        (user) => 
+          user.id !== formData.creator_id &&
+          !formData.participants.some((p) => p.id === user.id)
+      )
+      setSearchResults(finalFiltered)
+    }
+  }, [participantSearchQuery, allUsers, showParticipantDropdown, formData.creator_id, formData.participants, filterUsers])
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       // Check if click is outside both time picker containers
       const clickedInsideStart = startTimeRef.current?.contains(event.target)
       const clickedInsideEnd = endTimeRef.current?.contains(event.target)
+      const clickedInsideParticipant = participantSearchRef.current?.contains(event.target)
       
       if (!clickedInsideStart && showStartTimePicker) {
         setShowStartTimePicker(false)
@@ -151,13 +209,24 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, eventDa
       if (!clickedInsideEnd && showEndTimePicker) {
         setShowEndTimePicker(false)
       }
+      if (!clickedInsideParticipant && showParticipantDropdown) {
+        setShowParticipantDropdown(false)
+      }
     }
 
-    if (showStartTimePicker || showEndTimePicker) {
+    if (showStartTimePicker || showEndTimePicker || showParticipantDropdown) {
       document.addEventListener("mousedown", handleClickOutside)
       return () => document.removeEventListener("mousedown", handleClickOutside)
     }
-  }, [showStartTimePicker, showEndTimePicker])
+  }, [showStartTimePicker, showEndTimePicker, showParticipantDropdown])
+
+  const handleParticipantSelect = (user) => {
+    // Add user object to participants
+    handleChange("participants", [...formData.participants, user])
+    setParticipantSearchQuery("")
+    setSearchResults([])
+    setShowParticipantDropdown(false)
+  }
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 overflow-visible">
@@ -312,23 +381,47 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, eventDa
               </div>
 
               {/* Add Participants */}
-              <div className="relative" style={{ marginTop: '0.46rem' }}>
-                <select
-                  value=""
+              <div className="relative" style={{ marginTop: '0.46rem' }} ref={participantSearchRef}>
+                <input
+                  type="text"
+                  placeholder="Dodaj Uczestników"
+                  value={participantSearchQuery}
                   onChange={(e) => {
-                    if (e.target.value) {
-                      handleChange("participants", [...formData.participants, e.target.value])
-                      e.target.value = ""
+                    setParticipantSearchQuery(e.target.value)
+                  }}
+                  onFocus={() => {
+                    loadAllUsers()
+                  }}
+                  onClick={() => {
+                    if (!showParticipantDropdown) {
+                      loadAllUsers()
                     }
                   }}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white cursor-pointer"
-                >
-                  <option value="">Dodaj Uczestników</option>
-                  <option value="user1">Użytkownik 1</option>
-                  <option value="user2">Użytkownik 2</option>
-                  <option value="user3">Użytkownik 3</option>
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500 pointer-events-none" />
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                />
+                {showParticipantDropdown && (
+                  <div className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg z-[100] max-h-60 overflow-y-auto">
+                    {isLoadingUsers ? (
+                      <div className="px-4 py-2 text-gray-500 text-sm">Ładowanie użytkowników...</div>
+                    ) : searchResults.length > 0 ? (
+                      searchResults.map((user) => (
+                        <button
+                          key={user.id}
+                          type="button"
+                          onClick={() => handleParticipantSelect(user)}
+                          className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors flex flex-col"
+                        >
+                          <span className="font-medium text-gray-900">{user.username}</span>
+                          <span className="text-sm text-gray-500">{user.email}</span>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-4 py-2 text-gray-500 text-sm">
+                        {participantSearchQuery.length > 0 ? "Brak wyników" : "Brak dostępnych użytkowników"}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Selected Participants */}
@@ -336,11 +429,11 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, eventDa
                 <div className="flex flex-wrap gap-2">
                   {formData.participants.map((participant, index) => (
                     <span
-                      key={index}
+                      key={participant.id || index}
                       className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center gap-2"
                       style={{ marginTop: '1rem' }}
                     >
-                      {participant}
+                      {participant.username || participant.email || participant}
                       <button
                         type="button"
                         onClick={() => {
