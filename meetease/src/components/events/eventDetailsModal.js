@@ -1,5 +1,6 @@
 "use client"
 import * as React from "react"
+import { useState } from "react"
 import {
     Dialog,
     DialogContent,
@@ -11,6 +12,7 @@ import {
 } from "@/components/ui/dialog"
 import {ScrollArea} from "@/components/ui/scrollarea";
 import { Button } from "@/components/ui/button"
+import EventCreatorComponent from "@/components/features/event-creator"
 
 
 //event details — przekazywac info o wydarzeniach do modalu 
@@ -39,7 +41,11 @@ const defaultAttendees = [
     { id: 6, name: "Jane Smith"},
 ];
 
-export default function EventDetailsModal({user, event = defaultEvent, attendees = defaultAttendees}) {
+export default function EventDetailsModal({user, event = defaultEvent, attendees = defaultAttendees, handleEventUpdate, handleEventDelete, handleEventLeave}) {
+    const [showEditForm, setShowEditForm] = useState(false)
+    const [isDialogOpen, setIsDialogOpen] = useState(false)
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+    
     if (attendees == defaultAttendees) {
         try {
             attendees = event.attendees
@@ -50,16 +56,64 @@ export default function EventDetailsModal({user, event = defaultEvent, attendees
         }
     }
 
+    const isCreator = user?.id === event?.creator_id
+
+    const handleEditClick = () => {
+        setIsDialogOpen(false)
+        setShowEditForm(true)
+    }
+
+    const handleEditSubmit = async (eventData) => {
+        if (handleEventUpdate) {
+            await handleEventUpdate(event.id, eventData)
+        }
+        setShowEditForm(false)
+    }
+
+    const handleDeleteClick = (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setShowDeleteConfirm(true)
+    }
+
+    const handleDeleteConfirm = async (e) => {
+        e?.preventDefault()
+        e?.stopPropagation()
+        if (handleEventDelete) {
+            await handleEventDelete(event.id)
+        }
+        setShowDeleteConfirm(false)
+        setIsDialogOpen(false)
+    }
+
+    const handleCancelDelete = (e) => {
+        e?.preventDefault()
+        e?.stopPropagation()
+        setShowDeleteConfirm(false)
+    }
+
+    const handleLeaveClick = async () => {
+        if (handleEventLeave) {
+            await handleEventLeave(event.id)
+        }
+        setIsDialogOpen(false)
+    }
+
     return (
-        <Dialog>
-            <DialogTrigger asChild>
-                <Button variant="outline">{event.name}</Button>
-            </DialogTrigger>
-            <form>
-                <DialogContent className="sm:max-w-[425px]">
-                    <DialogHeader className={'!border-b-1 border-black pb-4'}>
-                        <DialogTitle className={'text-center text-2xl'}>{event.name}</DialogTitle>
-                    </DialogHeader>
+        <>
+            <Dialog open={isDialogOpen && !showDeleteConfirm} onOpenChange={(open) => {
+                if (!showDeleteConfirm) {
+                    setIsDialogOpen(open)
+                }
+            }}>
+                <DialogTrigger asChild>
+                    <Button variant="outline">{event.name}</Button>
+                </DialogTrigger>
+                <form>
+                    <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
+                        <DialogHeader className={'!border-b-1 border-black pb-4'}>
+                            <DialogTitle className={'text-center text-2xl'}>{event.name}</DialogTitle>
+                        </DialogHeader>
 
                         <div className={'flex flex-col gap-4'}>
                             <div className="flex flex-col gap-1 text-lg">
@@ -91,12 +145,33 @@ export default function EventDetailsModal({user, event = defaultEvent, attendees
                         </div>
 
                     <DialogFooter className={'!border-t-1 border-black pt-4 !justify-between'}>
-                          
-                        <DialogClose asChild>
-                            <span className={'text-blue-500 cursor-pointer'}>Edytuj wydarzenie</span>        
-                        </DialogClose>
-                        
-                        <span className={'text-red-500 cursor-pointer'}>Opuść wydarzenie</span>
+                        {isCreator && (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={handleEditClick}
+                                    className={'text-blue-500 cursor-pointer hover:text-blue-700'}
+                                >
+                                    Edycja Wydarzenia
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleDeleteClick}
+                                    className={'text-red-500 cursor-pointer hover:text-red-700'}
+                                >
+                                    Usuń Wydarzenie
+                                </button>
+                            </>
+                        )}
+                        {!isCreator && (
+                            <button
+                                type="button"
+                                onClick={handleLeaveClick}
+                                className={'text-red-500 cursor-pointer hover:text-red-700'}
+                            >
+                                Opuść wydarzenie
+                            </button>
+                        )}
                     </DialogFooter>
                     <DialogClose asChild>
                         <Button variant="outline">Close</Button>
@@ -104,5 +179,63 @@ export default function EventDetailsModal({user, event = defaultEvent, attendees
                 </DialogContent>
             </form>
         </Dialog>
+
+        {showEditForm && (
+            <EventCreatorComponent
+                user={user}
+                event={event}
+                isEditing={true}
+                onClose={() => setShowEditForm(false)}
+                onSubmit={handleEditSubmit}
+            />
+        )}
+
+        {/* Delete Confirmation Dialog - z-index higher than event modal */}
+        {showDeleteConfirm && (
+            <div 
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-[100]"
+                style={{ pointerEvents: 'auto' }}
+                onMouseDown={(e) => {
+                    // Prevent closing when clicking on backdrop
+                    e.stopPropagation()
+                }}
+                onClick={(e) => {
+                    // Close if clicking on backdrop
+                    if (e.target === e.currentTarget) {
+                        handleCancelDelete(e)
+                    }
+                }}
+            >
+                <div 
+                    className="bg-white rounded-lg shadow-xl p-6 max-w-md w-[90vw]"
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <h3 className="text-xl font-semibold mb-4">Usuń wydarzenie</h3>
+                    <p className="text-gray-600 mb-6">
+                        Czy na pewno chcesz usunąć wydarzenie "{event.name}"? Ta operacja jest nieodwracalna.
+                    </p>
+                    <div className="flex justify-end gap-3">
+                        <button
+                            type="button"
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onClick={handleCancelDelete}
+                            className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
+                        >
+                            Anuluj
+                        </button>
+                        <button
+                            type="button"
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onClick={handleDeleteConfirm}
+                            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors cursor-pointer"
+                        >
+                            Usuń
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
+        </>
     )
 }
