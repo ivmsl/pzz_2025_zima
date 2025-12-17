@@ -45,74 +45,83 @@ export default function EventDetailsModal({user, event = defaultEvent, attendees
 
     const [showEventCreator, setShowEventCreator] = useState(false)
 
+    // Ensure event exists
+    const eventData = event || defaultEvent
+
+    // Ensure attendees is always an array
     if (attendees == defaultAttendees) {
-        try {
-            attendees = event.attendees
-            // console.log("Attendees:", attendees)
-        } catch (error) {
-            // console.error("Error fetching attendees:", error)
-            attendees = defaultAttendees
-        }
+        attendees = eventData.attendees || defaultAttendees
+    }
+    
+    // Final safety check - ensure attendees is always an array
+    if (!attendees || !Array.isArray(attendees)) {
+        attendees = defaultAttendees
     }
 
     return (
         <>
         <Dialog>
             <DialogTrigger asChild>
-                <Button variant="outline">{event.name}</Button>
+                <Button variant="outline">{eventData.name}</Button>
             </DialogTrigger>
             <form>
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader className={'!border-b-1 border-black pb-4'}>
-                        <DialogTitle className={'text-center text-2xl'}>{event.name}</DialogTitle>
+                        <DialogTitle className={'text-center text-2xl'}>{eventData.name}</DialogTitle>
                     </DialogHeader>
 
                         <div className={'flex flex-col gap-4'}>
                             <div className="flex flex-col gap-1 text-lg">
                                 <div className={'flex gap-2 items-center'}>
                                     <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24"><path fill="currentColor" d="M5 22q-.825 0-1.412-.587T3 20V6q0-.825.588-1.412T5 4h1V2h2v2h8V2h2v2h1q.825 0 1.413.588T21 6v14q0 .825-.587 1.413T19 22zm0-2h14V10H5zM5 8h14V6H5zm0 0V6z"/></svg>
-                                    <span>{event.date}, {event.time}</span>
+                                    <span>{eventData.date || "Brak daty"}, {eventData.time || eventData.time_start || "Brak czasu"}</span>
                                 </div>
-                                <div className={'flex gap-2 items-center'}>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24"><path fill="currentColor" d="M12 12q.825 0 1.413-.587T14 10t-.587-1.412T12 8t-1.412.588T10 10t.588 1.413T12 12m0 7.35q3.05-2.8 4.525-5.087T18 10.2q0-2.725-1.737-4.462T12 4T7.738 5.738T6 10.2q0 1.775 1.475 4.063T12 19.35M12 22q-4.025-3.425-6.012-6.362T4 10.2q0-3.75 2.413-5.975T12 2t5.588 2.225T20 10.2q0 2.5-1.987 5.438T12 22m0-12"/></svg>
-                                    <span>{event.location}</span>
-                                </div>
-                            </div>
-
-                            <div>
-                                <p>{event.description}</p>
-                            </div>
-
-                            <div>
-                                {event.code && (
-                                    <div>
-                                        <p>Kod wydarzenia:</p>
-                                        <p>{event.code}</p>
+                                {eventData.location && (
+                                    <div className={'flex gap-2 items-center'}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24"><path fill="currentColor" d="M12 12q.825 0 1.413-.587T14 10t-.587-1.412T12 8t-1.412.588T10 10t.588 1.413T12 12m0 7.35q3.05-2.8 4.525-5.087T18 10.2q0-2.725-1.737-4.462T12 4T7.738 5.738T6 10.2q0 1.775 1.475 4.063T12 19.35M12 22q-4.025-3.425-6.012-6.362T4 10.2q0-3.75 2.413-5.975T12 2t5.588 2.225T20 10.2q0 2.5-1.987 5.438T12 22m0-12"/></svg>
+                                        <span>{eventData.location}</span>
                                     </div>
                                 )}
                             </div>
+
+                            {eventData.description && (
+                                <div>
+                                    <p>{eventData.description}</p>
+                                </div>
+                            )}
+
+                            {eventData.code && (
+                                <div>
+                                    <p>Kod wydarzenia:</p>
+                                    <p>{eventData.code}</p>
+                                </div>
+                            )}
                             <h4 className="text-xl font-semi-bold">Uczestnicy:</h4>
                             <ScrollArea className="max-h-64 rounded-md" type="always">
                                 <div className="">
-                                    {attendees.map((attendee) => (
-                                        <React.Fragment key={attendee.id}>
-                                            <div className="text-sm">{attendee.username}</div>
-                                        </React.Fragment>
-                                    ))}
+                                    {attendees && attendees.length > 0 ? (
+                                        attendees.map((attendee) => (
+                                            <React.Fragment key={attendee.id || attendee.username || Math.random()}>
+                                                <div className="text-sm">{attendee.username || attendee.name || "Nieznany"}</div>
+                                            </React.Fragment>
+                                        ))
+                                    ) : (
+                                        <div className="text-sm text-gray-500">Brak uczestników</div>
+                                    )}
                                 </div>
                             </ScrollArea>
 
                         </div>
 
                     <DialogFooter className={'!border-t-1 border-black pt-4 !justify-between'}>
-                {event.creator_id === user.id &&                           
+                {eventData.creator_id === user.id &&                           
                         
 
                         <span className={'text-blue-500 cursor-pointer'} >Edytuj wydarzenie</span>        
                     
                 }
                 <DialogClose asChild> 
-                    <Button variant="outline" onClick={() => serverActions.handleLeaveEventServerAction(event.id, user.id)}>
+                    <Button variant="outline" onClick={() => serverActions.handleLeaveEventServerAction(eventData.id, user.id)}>
                         <span className={'text-red-500 cursor-pointer'}>Opuść wydarzenie</span>
                     </Button>
                     

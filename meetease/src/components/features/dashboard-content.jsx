@@ -6,12 +6,23 @@ import { Button } from "@/components/ui/button"
 import EventCreatorComponent from "./event-creator"
 import JoinEventModal from "@/components/features/joinEventModal";
 import EventDetailsModal from "@/components/events/eventDetailsModal"
+import UpcomingEventsModal from "./upcoming-events-modal"
+import InvitationsModal from "./invitations-modal"
 
 export default function DashboardContent({ user, logout, serverActions, events = [] }) {
   const [showEventCreator, setShowEventCreator] = useState(false)
   const [showJoinEventModal, setShowJoinEventModal] = useState(false)
+  const [showUpcomingEvents, setShowUpcomingEvents] = useState(false)
+  const [showInvitations, setShowInvitations] = useState(false)
   // const [showEventDetailsModal, setShowEventDetailsModal] = useState(false)
   // const [eventsData, setEventsData] = useState(events)
+  
+  const handleInvitationHandled = () => {
+    // Refresh upcoming events if open
+    if (showUpcomingEvents) {
+      // The modal will reload when it reopens, but we could trigger a refresh here if needed
+    }
+  }
 
   return (
     <div className="p-8">
@@ -25,6 +36,18 @@ export default function DashboardContent({ user, logout, serverActions, events =
               onClick={() => setShowJoinEventModal(true)}
           >
             Dołącz do wydarzenia
+          </Button>
+          <Button
+            onClick={() => setShowUpcomingEvents(true)}
+            variant="outline"
+          >
+            Nadchodzące
+          </Button>
+          <Button
+            onClick={() => setShowInvitations(true)}
+            variant="outline"
+          >
+            Zaproszenia
           </Button>
           <Button asChild variant="outline">
             <Link href="/settings">
@@ -46,7 +69,7 @@ export default function DashboardContent({ user, logout, serverActions, events =
 
       <div className="flex flex-col gap-4 p-8">     
                 <div className="flex flex-col py-4 gap-4 justify-center w-1/2">
-                    {events.map((event) => (
+                    {events && events.length > 0 && events.map((event) => (
                             <EventDetailsModal user={user} event={event} key={event.id} serverActions={serverActions}/>
                     ))}
                 </div>
@@ -67,6 +90,25 @@ export default function DashboardContent({ user, logout, serverActions, events =
               onClose={() => setShowJoinEventModal(false)}
               onJoinEvent={serverActions.handleJoinEventServerAction}
           />
+      )}
+
+      {showUpcomingEvents && (
+        <UpcomingEventsModal
+          user={user}
+          open={showUpcomingEvents}
+          onClose={() => setShowUpcomingEvents(false)}
+          serverActions={serverActions}
+        />
+      )}
+
+      {showInvitations && (
+        <InvitationsModal
+          user={user}
+          open={showInvitations}
+          onClose={() => setShowInvitations(false)}
+          serverActions={serverActions}
+          onInvitationHandled={handleInvitationHandled}
+        />
       )}
     </div>
   )
