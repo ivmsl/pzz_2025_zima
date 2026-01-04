@@ -11,21 +11,116 @@ async function handleCreateEventServerAction(eventData) {
 
 async function handleJoinEventServerAction(code, userId) {
     "use server"
-    const { success, error } = await joinEventByCode(code, userId)
-    if (error) {
-       return { success: false, error: error }
-    } else {
-        return { success: true, error: null }
+    const supabase = await createClient()
+    
+    try {
+        // Get event_id from code first
+        const { data: eventCode } = await supabase
+            .from("event_codes")
+            .select("event_id")
+            .eq("code", code)
+            .single()
+        
+        if (!eventCode) {
+            return { success: false, error: "Nieprawidłowy kod wydarzenia" }
+        }
+        
+        // Fetch event info to get creator_id
+        const { data: event } = await supabase
+            .from("events")
+            .select("id, name, creator_id")
+            .eq("id", eventCode.event_id)
+            .single()
+        
+        // Fetch user info (guest who is joining)
+        const { data: guestProfile } = await supabase
+            .from("profiles")
+            .select("username, email")
+            .eq("id", userId)
+            .maybeSingle()
+        
+        const guestName = guestProfile?.username || guestProfile?.email || "Gość"
+        
+        // Join the event
+        const { success, error } = await joinEventByCode(code, userId)
+        if (error) {
+            return { success: false, error: error }
+        }
+        
+        // Create notification for host if host is different from guest
+        if (event && event.creator_id && event.creator_id !== userId) {
+            const notificationContent = `${guestName} dołączył do wydarzenia "${event.name}" używając kodu.`
+            await supabase
+                .from("notifications")
+                .insert({
+                    user_id: event.creator_id,
+                    type: "event",
+                    content: notificationContent,
+                    read: false
+                })
+        }
+        
+        return { 
+            success: true, 
+            error: null,
+            event: event || null,
+            guestName: guestName
+        }
+    } catch (error) {
+        console.error("Error joining event:", error)
+        return { success: false, error: error.message }
     }
 }
 
 async function handleLeaveEventServerAction(eventId, userId) {
     "use server"
-    const { success, error } = await leaveEvent(eventId, userId)
-    if (error) {
-       return { success: false, error: error }
-    } else {
-        return { success: true, error: null }
+    const supabase = await createClient()
+    
+    try {
+        // Fetch event info to get creator_id before leaving
+        const { data: event } = await supabase
+            .from("events")
+            .select("id, name, creator_id")
+            .eq("id", eventId)
+            .single()
+        
+        // Fetch user info (guest who is leaving)
+        const { data: guestProfile } = await supabase
+            .from("profiles")
+            .select("username, email")
+            .eq("id", userId)
+            .maybeSingle()
+        
+        const guestName = guestProfile?.username || guestProfile?.email || "Gość"
+        
+        // Leave the event
+        const { success, error } = await leaveEvent(eventId, userId)
+        if (error) {
+            return { success: false, error: error }
+        }
+        
+        // Create notification for host if host is different from guest
+        if (event && event.creator_id && event.creator_id !== userId) {
+            const notificationContent = `${guestName} opuścił wydarzenie "${event.name}".`
+            await supabase
+                .from("notifications")
+                .insert({
+                    user_id: event.creator_id,
+                    type: "event",
+                    content: notificationContent,
+                    read: false
+                })
+        }
+        
+        return { 
+            success: true, 
+            error: null,
+            event: event || null,
+            guestName: guestName
+        }
+    } catch (error) {
+        console.error("Error leaving event:", error)
+        return { success: false, error: error.message }
     }
 }
 
@@ -56,6 +151,22 @@ async function handleAcceptInvitation(inviteId, eventId, userId) {
     const supabase = await createClient()
     
     try {
+        // Fetch event info to get creator_id
+        const { data: event } = await supabase
+            .from("events")
+            .select("id, name, creator_id")
+            .eq("id", eventId)
+            .single()
+        
+        // Fetch user info (guest who is accepting)
+        const { data: guestProfile } = await supabase
+            .from("profiles")
+            .select("username, email")
+            .eq("id", userId)
+            .maybeSingle()
+        
+        const guestName = guestProfile?.username || guestProfile?.email || "Gość"
+        
         // Check if user is already in users_events
         const { data: existingEntry } = await supabase
             .from("users_events")
@@ -88,11 +199,76 @@ async function handleAcceptInvitation(inviteId, eventId, userId) {
                 console.error("Error adding user to event:", insertError)
                 return { success: false, error: insertError.message }
             }
+            
+            // Create notification for host if host is different from guest
+            if (event && event.creator_id && event.creator_id !== userId) {
+                const notificationContent = `${guestName} zaakceptował zaproszenie do wydarzenia "${event.name}".`
+                await supabase
+                    .from("notifications")
+                    .insert({
+                        user_id: event.creator_id,
+                        type: "event",
+                        content: notificationContent,
+                        read: false
+                    })
+            }
+        }
+        
+        return { 
+            success: true, 
+            error: null,
+            event: event || null,
+            guestName: guestName
+        }
+    } catch (error) {
+        console.error("Error accepting invitation:", error)
+        return { success: false, error: error.message }
+    }
+}
+
+async function handleFetchNotifications(userId) {
+    "use server"
+    const supabase = await createClient()
+    
+    try {
+        const { data: notifications, error } = await supabase
+            .from("notifications")
+            .select("*")
+            .eq("user_id", userId)
+            .eq("read", false)
+            .order("created_at", { ascending: false })
+            .limit(50)
+        
+        if (error) {
+            console.error("Error fetching notifications:", error)
+            return { success: false, notifications: [], error: error.message }
+        }
+        
+        return { success: true, notifications: notifications || [], error: null }
+    } catch (error) {
+        console.error("Error fetching notifications:", error)
+        return { success: false, notifications: [], error: error.message }
+    }
+}
+
+async function handleMarkNotificationAsRead(notificationId) {
+    "use server"
+    const supabase = await createClient()
+    
+    try {
+        const { error } = await supabase
+            .from("notifications")
+            .update({ read: true })
+            .eq("id", notificationId)
+        
+        if (error) {
+            console.error("Error marking notification as read:", error)
+            return { success: false, error: error.message }
         }
         
         return { success: true, error: null }
     } catch (error) {
-        console.error("Error accepting invitation:", error)
+        console.error("Error marking notification as read:", error)
         return { success: false, error: error.message }
     }
 }
@@ -126,6 +302,8 @@ const serverActions = {
     handleFetchParticipatingEvents,
     handleFetchPendingInvitations,
     handleAcceptInvitation,
-    handleDeclineInvitation
+    handleDeclineInvitation,
+    handleFetchNotifications,
+    handleMarkNotificationAsRead
 }
 export default serverActions
