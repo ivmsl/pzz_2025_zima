@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import EventCreatorComponent from "./event-creator"
@@ -8,19 +8,100 @@ import JoinEventModal from "@/components/features/joinEventModal";
 import EventDetailsModal from "@/components/events/eventDetailsModal"
 import UpcomingEventsModal from "./upcoming-events-modal"
 import InvitationsModal from "./invitations-modal"
+import NotificationBell from "./notification-bell"
+import { checkEventReminders, notifyEventInvitation } from "@/lib/notificationService"
 
 export default function DashboardContent({ user, logout, serverActions, events = [] }) {
   const [showEventCreator, setShowEventCreator] = useState(false)
   const [showJoinEventModal, setShowJoinEventModal] = useState(false)
   const [showUpcomingEvents, setShowUpcomingEvents] = useState(false)
   const [showInvitations, setShowInvitations] = useState(false)
+  const [participatingEvents, setParticipatingEvents] = useState([])
+  const notifiedInvitationIdsRef = useRef(new Set())
   // const [showEventDetailsModal, setShowEventDetailsModal] = useState(false)
   // const [eventsData, setEventsData] = useState(events)
   
-  const handleInvitationHandled = () => {
+  // Load participating events for reminders
+  useEffect(() => {
+    const loadParticipatingEvents = async () => {
+      try {
+        const result = await serverActions.handleFetchParticipatingEvents(user.id)
+        if (result && result.success && result.events) {
+          setParticipatingEvents(result.events)
+          // Check reminders after loading
+          checkEventReminders(result.events, user.id)
+        }
+      } catch (error) {
+        console.error("Error loading participating events:", error)
+      }
+    }
+    
+    loadParticipatingEvents()
+    
+    // Check reminders every 5 minutes
+    const interval = setInterval(async () => {
+      try {
+        const result = await serverActions.handleFetchParticipatingEvents(user.id)
+        if (result && result.success && result.events) {
+          checkEventReminders(result.events, user.id)
+        }
+      } catch (error) {
+        console.error("Error checking reminders:", error)
+      }
+    }, 5 * 60 * 1000) // 5 minutes
+    
+    return () => clearInterval(interval)
+  }, [user.id, serverActions])
+  
+  // Load pending invitations on mount to trigger notifications immediately
+  useEffect(() => {
+    const loadInvitationsForNotifications = async () => {
+      try {
+        const result = await serverActions.handleFetchPendingInvitations(user.id)
+        if (result.success && result.invitations) {
+          // Send notifications for new invitations immediately
+          result.invitations.forEach((invitation) => {
+            if (invitation.event && !notifiedInvitationIdsRef.current.has(invitation.id)) {
+              const senderName = invitation.sender?.username || invitation.sender?.email || "Użytkownik"
+              notifyEventInvitation(invitation.event, senderName)
+              notifiedInvitationIdsRef.current.add(invitation.id)
+            }
+          })
+        }
+      } catch (error) {
+        console.error("Error loading invitations for notifications:", error)
+      }
+    }
+    loadInvitationsForNotifications()
+    
+    // Also check periodically for new invitations
+    const interval = setInterval(() => {
+      loadInvitationsForNotifications()
+    }, 60000) // Check every minute
+    
+    return () => clearInterval(interval)
+  }, [user.id, serverActions])
+  
+  // Update participating events when they change
+  useEffect(() => {
+    if (participatingEvents.length > 0) {
+      checkEventReminders(participatingEvents, user.id)
+    }
+  }, [participatingEvents, user.id])
+  
+  const handleInvitationHandled = async () => {
     // Refresh upcoming events if open
     if (showUpcomingEvents) {
       // The modal will reload when it reopens, but we could trigger a refresh here if needed
+    }
+    // Reload participating events for reminders
+    try {
+      const result = await serverActions.handleFetchParticipatingEvents(user.id)
+      if (result && result.success && result.events) {
+        setParticipatingEvents(result.events)
+      }
+    } catch (error) {
+      console.error("Error loading participating events:", error)
     }
   }
 
@@ -31,7 +112,8 @@ export default function DashboardContent({ user, logout, serverActions, events =
           <h1 className="text-4xl font-bold mb-4">Dashboard</h1>
           <p className="mb-4">Zalogowany jako: {user.username}</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 items-center">
+          <NotificationBell userId={user.id} serverActions={serverActions} />
           <Button
               onClick={() => setShowJoinEventModal(true)}
           >

@@ -13,6 +13,7 @@ import {ScrollArea} from "@/components/ui/scrollarea";
 import EventCreatorComponent from "@/components/features/event-creator"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
+import { notifyHostGuestLeft } from "@/lib/notificationService"
 
 
 //event details — przekazywac info o wydarzeniach do modalu 
@@ -121,7 +122,20 @@ export default function EventDetailsModal({user, event = defaultEvent, attendees
                     
                 }
                 <DialogClose asChild> 
-                    <Button variant="outline" onClick={() => serverActions.handleLeaveEventServerAction(eventData.id, user.id)}>
+                    <Button variant="outline" onClick={async () => {
+                        const result = await serverActions.handleLeaveEventServerAction(eventData.id, user.id)
+                        if (result.success && result.event) {
+                            // Note: To notify the host (who is a different user), we would need
+                            // server-side notifications stored in the database that the host can fetch
+                            // when they load their dashboard. For now, the host would need to manually
+                            // check their events to see who left.
+                            //
+                            // In a production system, you'd want to:
+                            // 1. Store notification in database when guest leaves
+                            // 2. Host fetches notifications when loading dashboard
+                            // 3. Or use real-time updates (websockets/realtime)
+                        }
+                    }}>
                         <span className={'text-red-500 cursor-pointer'}>Opuść wydarzenie</span>
                     </Button>
                     

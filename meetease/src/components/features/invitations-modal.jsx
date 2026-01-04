@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { notifyEventAdded, notifyEventInvitation, notifyHostGuestAccepted } from "@/lib/notificationService"
 
 export default function InvitationsModal({ user, open, onClose, serverActions, onInvitationHandled }) {
   const [invitations, setInvitations] = useState([])
@@ -20,7 +21,9 @@ export default function InvitationsModal({ user, open, onClose, serverActions, o
     try {
       const result = await serverActions.handleFetchPendingInvitations(user.id)
       if (result.success) {
-        setInvitations(result.invitations || [])
+        const newInvitations = result.invitations || []
+        setInvitations(newInvitations)
+        // Don't send notifications here - they're handled by the dashboard component
       }
     } catch (error) {
       console.error("Error loading invitations:", error)
@@ -34,6 +37,26 @@ export default function InvitationsModal({ user, open, onClose, serverActions, o
     try {
       const result = await serverActions.handleAcceptInvitation(inviteId, eventId, user.id)
       if (result.success) {
+        // Find the invitation to get event details
+        const invitation = invitations.find(inv => inv.id === inviteId)
+        const event = result.event || invitation?.event
+        
+        if (event) {
+          // Send notification to guest (current user)
+          const senderName = invitation.sender?.username || invitation.sender?.email || null
+          notifyEventAdded(event, senderName)
+          
+          // Note: To notify the host (who is a different user), we would need
+          // server-side notifications stored in the database that the host can fetch
+          // when they load their dashboard. For now, the host would need to manually
+          // check their events to see new participants.
+          // 
+          // In a production system, you'd want to:
+          // 1. Store notification in database when guest accepts
+          // 2. Host fetches notifications when loading dashboard
+          // 3. Or use real-time updates (websockets/realtime)
+        }
+        
         // Remove invitation from list
         setInvitations(prev => prev.filter(inv => inv.id !== inviteId))
         // Notify parent to refresh upcoming events

@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { notifyEventAdded, notifyHostGuestAccepted } from "@/lib/notificationService"
 
 export default function JoinEventModal({ user, open, onClose, onJoinEvent }) {
     const supabase = createClientComponentClient()
@@ -23,21 +24,22 @@ export default function JoinEventModal({ user, open, onClose, onJoinEvent }) {
         setLoading(true)
 
         if (onJoinEvent) {
-            const { success, error } = await onJoinEvent(code, user.id)
-            if (error) {
-                setError(error)
-            } else {
+            const result = await onJoinEvent(code, user.id)
+            if (result.error) {
+                setError(result.error)
+            } else if (result.success) {
                 setError(null)
-                onClose(false)
                 
+                // Send notification to guest (current user) immediately
+                if (result.event) {
+                    notifyEventAdded(result.event, null)
+                }
+                
+                onClose(false)
             }
-            console.log("Success:", success, "Error:", error)
         }
 
-
         setLoading(false)
-
-        onClose(false)
     }
 
     return (
