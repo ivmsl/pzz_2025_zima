@@ -413,7 +413,7 @@ export async function createEvent(eventData, creatorId) {
                     event_id: createdEvent.id,
                     type: "general",
                     question,
-                    deadline: null,
+                    deadline: eventData.vote.deadline || null,
                 })
                 .select("id")
                 .single()
@@ -441,7 +441,7 @@ export async function createEvent(eventData, creatorId) {
     }
 
     // Create special votes (time/location) if provided
-    const createVote = async ({ type, question, options }) => {
+    const createVote = async ({ type, question, options, deadline }) => {
         const q = String(question || "").trim()
         const opts = (options || []).map((o) => String(o).trim()).filter(Boolean)
         if (!q || opts.length < 2) return
@@ -452,7 +452,7 @@ export async function createEvent(eventData, creatorId) {
                 event_id: createdEvent.id,
                 type,
                 question: q,
-                deadline: null,
+                deadline: deadline || null,
             })
             .select("id")
             .single()

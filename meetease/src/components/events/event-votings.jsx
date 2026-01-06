@@ -125,7 +125,7 @@ export default function EventVotings({ user, eventId, eventCreatorId, fetchEvent
           v.type === "location" ? "Głosowanie nad miejscem" : v.type === "time" ? "Głosowanie nad czasem" : "Głosowanie ogólne"
         const isClosed = !!v.isClosed
         const alreadyVoted = !!v.userVoteOptionId
-        const canVote = !isClosed && !alreadyVoted
+        const canVote = !isClosed // Allow voting/re-voting if not closed, regardless of previous vote
         const options = (v.options || []).map((o) => ({
           ...o,
           option_text: v.type === "time" ? formatTimeOption(o.option_text) : o.option_text,
@@ -137,6 +137,11 @@ export default function EventVotings({ user, eventId, eventCreatorId, fetchEvent
               <div>
                 <h3 className="text-xl font-semibold">{title}</h3>
                 <p className="text-sm text-gray-500">Anonimowe — widoczne są tylko wyniki.</p>
+                {v.deadline && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    Koniec: {new Date(v.deadline).toLocaleString("pl-PL")}
+                  </p>
+                )}
               </div>
 
               {isCreator && (
@@ -165,6 +170,11 @@ export default function EventVotings({ user, eventId, eventCreatorId, fetchEvent
 
               {canVote && (
                 <div className="mt-4 space-y-3">
+                  {alreadyVoted && (
+                    <div className="text-sm text-blue-600 mb-3">
+                      ℹ️ Możesz zmienić swój głos. Twój obecny wybór zostanie zastąpiony.
+                    </div>
+                  )}
                   {options.map((opt) => (
                     <label key={opt.id} className="flex items-center gap-3 border rounded-lg p-3 bg-gray-50 cursor-pointer">
                       <input
@@ -176,10 +186,13 @@ export default function EventVotings({ user, eventId, eventCreatorId, fetchEvent
                         className="w-4 h-4"
                       />
                       <span className="text-gray-900">{opt.option_text}</span>
+                      {v.userVoteOptionId === opt.id && (
+                        <span className="text-xs ml-auto px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">Twój wybór</span>
+                      )}
                     </label>
                   ))}
                   <Button type="button" onClick={() => handleCast(v.id)} disabled={!selectedByVoteId[v.id] || actionLoadingId === v.id}>
-                    {actionLoadingId === v.id ? "Głosowanie..." : "Oddaj głos"}
+                    {actionLoadingId === v.id ? "Głosowanie..." : alreadyVoted ? "Zmień głos" : "Oddaj głos"}
                   </Button>
                 </div>
               )}

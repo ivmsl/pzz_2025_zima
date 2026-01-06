@@ -20,14 +20,20 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, eventDa
   })
   const [voteQuestion, setVoteQuestion] = useState("")
   const [voteOptions, setVoteOptions] = useState(["", ""])
+  const [voteDeadline, setVoteDeadline] = useState("")
+  const [voteDeadlineTime, setVoteDeadlineTime] = useState("")
   // Głosowania specjalne (czas/miejsce)
   const [locationVoteQuestion, setLocationVoteQuestion] = useState("Wybierz miejsce spotkania")
   const [locationVoteOptions, setLocationVoteOptions] = useState(["", ""])
+  const [locationVoteDeadline, setLocationVoteDeadline] = useState("")
+  const [locationVoteDeadlineTime, setLocationVoteDeadlineTime] = useState("")
   const [timeVoteQuestion, setTimeVoteQuestion] = useState("Wybierz termin spotkania")
   const [timeVoteOptions, setTimeVoteOptions] = useState([
     { date: "", start: "", end: "" },
     { date: "", start: "", end: "" },
   ])
+  const [timeVoteDeadline, setTimeVoteDeadline] = useState("")
+  const [timeVoteDeadlineTime, setTimeVoteDeadlineTime] = useState("")
   const [fieldErrors, setFieldErrors] = useState({
     date: false,
     startTime: false,
@@ -113,9 +119,13 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, eventDa
     // Convert participant objects to IDs for submission
     const specialVotes = {}
     if (missingLocation) {
+      const locationDeadlineValue = locationVoteDeadline && locationVoteDeadlineTime
+        ? new Date(`${locationVoteDeadline}T${locationVoteDeadlineTime}`).toISOString()
+        : null
       specialVotes.location = {
         question: String(locationVoteQuestion || "").trim(),
         options: locationVoteOptions.map((o) => String(o || "").trim()).filter(Boolean),
+        deadline: locationDeadlineValue,
       }
     }
     if (missingTime) {
@@ -132,11 +142,19 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, eventDa
           const yyyyMMdd = parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : o.date
           return `${yyyyMMdd}|${o.start}|${o.end}`
         })
+      const timeDeadlineValue = timeVoteDeadline && timeVoteDeadlineTime
+        ? new Date(`${timeVoteDeadline}T${timeVoteDeadlineTime}`).toISOString()
+        : null
       specialVotes.time = {
         question: String(timeVoteQuestion || "").trim(),
         options: normalized,
+        deadline: timeDeadlineValue,
       }
     }
+
+    const voteDeadlineValue = voteDeadline && voteDeadlineTime
+      ? new Date(`${voteDeadline}T${voteDeadlineTime}`).toISOString()
+      : null
 
     const submitData = {
       ...formData,
@@ -147,6 +165,7 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, eventDa
             vote: {
               question: voteQuestion.trim(),
               options: voteOptions.map((o) => o.trim()).filter(Boolean),
+              deadline: voteDeadlineValue,
             },
           }
         : {}),
@@ -601,6 +620,29 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, eventDa
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Termin zakończenia głosowania (opcjonalnie)
+                    </label>
+                    <div className="flex gap-3">
+                      <input
+                        type="date"
+                        value={voteDeadline}
+                        onChange={(e) => setVoteDeadline(e.target.value)}
+                        className="flex-1 border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      />
+                      <input
+                        type="time"
+                        value={voteDeadlineTime}
+                        onChange={(e) => setVoteDeadlineTime(e.target.value)}
+                        className="flex-1 border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Po upływie terminu głosowanie będzie zamknięte i nie będzie możliwe oddanie lub zmiana głosu.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Opcje (min. 2)
                     </label>
                     <div className="space-y-3">
@@ -668,6 +710,25 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, eventDa
                     />
                   </div>
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Termin zakończenia głosowania (opcjonalnie)
+                    </label>
+                    <div className="flex gap-3">
+                      <input
+                        type="date"
+                        value={locationVoteDeadline}
+                        onChange={(e) => setLocationVoteDeadline(e.target.value)}
+                        className="flex-1 border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      />
+                      <input
+                        type="time"
+                        value={locationVoteDeadlineTime}
+                        onChange={(e) => setLocationVoteDeadlineTime(e.target.value)}
+                        className="flex-1 border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      />
+                    </div>
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Opcje (min. 2)</label>
                     <div className="space-y-3">
                       {locationVoteOptions.map((opt, idx) => (
@@ -729,6 +790,25 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, eventDa
                       onChange={(e) => setTimeVoteQuestion(e.target.value)}
                       className="w-full border border-gray-300 rounded-lg px-5 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Termin zakończenia głosowania (opcjonalnie)
+                    </label>
+                    <div className="flex gap-3">
+                      <input
+                        type="date"
+                        value={timeVoteDeadline}
+                        onChange={(e) => setTimeVoteDeadline(e.target.value)}
+                        className="flex-1 border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      />
+                      <input
+                        type="time"
+                        value={timeVoteDeadlineTime}
+                        onChange={(e) => setTimeVoteDeadlineTime(e.target.value)}
+                        className="flex-1 border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      />
+                    </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Opcje (min. 2)</label>

@@ -205,6 +205,50 @@ async function handleFetchGeneralVote(eventId, userId) {
 
         const isClosed = vote.deadline ? new Date(vote.deadline).getTime() <= Date.now() : false
 
+        // Auto-assign winning result to event for special votes (location/time) when deadline has passed
+        if (isClosed && (vote.type === "location" || vote.type === "time")) {
+            const { data: eventData } = await supabase
+                .from("events")
+                .select("id, location, time")
+                .eq("id", eventId)
+                .single()
+
+            if (eventData) {
+                // Check if we should assign the winning result
+                // For location votes: only assign if location is currently empty
+                // For time votes: only assign if time is currently empty
+                const shouldAssign = (vote.type === "location" && !eventData.location) ||
+                                    (vote.type === "time" && !eventData.time)
+
+                if (shouldAssign && totalVotes > 0) {
+                    // Find winning option
+                    let winningOption = optionsWithResults[0]
+                    for (const opt of optionsWithResults) {
+                        if (opt.votes > winningOption.votes) {
+                            winningOption = opt
+                        }
+                    }
+
+                    if (winningOption) {
+                        const updateData = {}
+
+                        if (vote.type === "location") {
+                            updateData.location = winningOption.option_text
+                        } else if (vote.type === "time") {
+                            // For time votes, the option_text is already in format YYYY-MM-DD|HH:MM|HH:MM
+                            updateData.time = winningOption.option_text
+                        }
+
+                        await supabase
+                            .from("events")
+                            .update(updateData)
+                            .eq("id", eventId)
+                            .single()
+                    }
+                }
+            }
+        }
+
         return {
             success: true,
             vote: {
@@ -311,6 +355,51 @@ async function handleFetchEventVotes(eventId, userId) {
             userVoteOptionId,
             options: optionsWithResults,
         })
+
+        // Auto-assign winning result to event for special votes (location/time) when deadline has passed
+        // Auto-assign winning result to event for special votes (location/time) when deadline has passed
+        if (isClosed && (v.type === "location" || v.type === "time")) {
+            const { data: eventData } = await supabase
+                .from("events")
+                .select("id, location, time")
+                .eq("id", eventId)
+                .single()
+
+            if (eventData) {
+                // Check if we should assign the winning result
+                // For location votes: only assign if location is currently empty
+                // For time votes: only assign if time is currently empty
+                const shouldAssign = (v.type === "location" && !eventData.location) ||
+                                    (v.type === "time" && !eventData.time)
+
+                if (shouldAssign && totalVotes > 0) {
+                    // Find winning option
+                    let winningOption = optionsWithResults[0]
+                    for (const opt of optionsWithResults) {
+                        if (opt.votes > winningOption.votes) {
+                            winningOption = opt
+                        }
+                    }
+
+                    if (winningOption) {
+                        const updateData = {}
+
+                        if (v.type === "location") {
+                            updateData.location = winningOption.option_text
+                        } else if (v.type === "time") {
+                            // For time votes, the option_text is already in format YYYY-MM-DD|HH:MM|HH:MM
+                            updateData.time = winningOption.option_text
+                        }
+
+                        await supabase
+                            .from("events")
+                            .update(updateData)
+                            .eq("id", eventId)
+                            .single()
+                    }
+                }
+            }
+        }
     }
 
     return { success: true, votes: result, error: null }

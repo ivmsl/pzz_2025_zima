@@ -50,7 +50,7 @@ export default function EventVoting({
   const canVote = useMemo(() => {
     if (!vote) return false
     if (vote.isClosed) return false
-    if (vote.userVoteOptionId) return false
+    // Allow voting/re-voting if not closed
     return true
   }, [vote])
 
@@ -152,11 +152,22 @@ export default function EventVoting({
           <div className="text-lg font-medium">{vote.question}</div>
           <div className="text-sm text-gray-500 mt-1">
             Status: <b>{vote.isClosed ? "Zamknięte" : "Otwarte"}</b> • Oddane głosy: <b>{vote.totalVotes}</b>
+            {vote.deadline && (
+              <>
+                {" "}
+                • Koniec: <b>{new Date(vote.deadline).toLocaleString("pl-PL")}</b>
+              </>
+            )}
           </div>
 
           {/* Voting form */}
-          {!vote.isClosed && !vote.userVoteOptionId && (
+          {!vote.isClosed && (
             <div className="mt-4 space-y-3">
+              {vote.userVoteOptionId && (
+                <div className="text-sm text-blue-600 mb-3">
+                  ℹ️ Możesz zmienić swój głos. Twój obecny wybór zostanie zastąpiony.
+                </div>
+              )}
               {(vote.options || []).map((opt) => (
                 <label key={opt.id} className="flex items-center gap-3 border rounded-lg p-3 bg-gray-50 cursor-pointer">
                   <input
@@ -168,10 +179,13 @@ export default function EventVoting({
                     className="w-4 h-4"
                   />
                   <span className="text-gray-900">{opt.option_text}</span>
+                  {vote.userVoteOptionId === opt.id && (
+                    <span className="text-xs ml-auto px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">Twój wybór</span>
+                  )}
                 </label>
               ))}
               <Button type="button" onClick={handleSubmitVote} disabled={!selectedOption || actionLoading}>
-                {actionLoading ? "Głosowanie..." : "Oddaj głos"}
+                {actionLoading ? "Głosowanie..." : vote.userVoteOptionId ? "Zmień głos" : "Oddaj głos"}
               </Button>
             </div>
           )}
