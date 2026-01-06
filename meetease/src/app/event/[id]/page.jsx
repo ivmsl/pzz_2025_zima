@@ -7,6 +7,8 @@ import {
     parseEventDateTime,
 } from "@/lib/eventService"
 import { defaultEvent, defaultAttendees } from "@/lib/defaults"
+import EventVoting from "@/components/events/event-voting"
+import serverActions from "@/lib/serverActions"
 
 export default async function EventPage({ params }) {
     const { supabase, user } = await getAuthenticatedUser()
@@ -114,6 +116,14 @@ export default async function EventPage({ params }) {
                             </div>
                         </ScrollArea>
                     </div>
+
+                    {/* Voting */}
+                    <EventVoting
+                        user={user}
+                        eventId={eventId}
+                        eventCreatorId={event.creator_id}
+                        serverActions={serverActions}
+                    />
 
                     {/* Footer Actions */}
                     <div className="border-t border-black pt-4 mt-6 flex justify-between items-center">

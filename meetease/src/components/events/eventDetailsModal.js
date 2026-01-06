@@ -13,6 +13,7 @@ import {ScrollArea} from "@/components/ui/scrollarea";
 import EventCreatorComponent from "@/components/features/event-creator"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
+import EventVoting from "@/components/events/event-voting"
 
 
 //event details — przekazywac info o wydarzeniach do modalu 
@@ -65,7 +66,7 @@ export default function EventDetailsModal({user, event = defaultEvent, attendees
                 <Button variant="outline">{eventData.name}</Button>
             </DialogTrigger>
             <form>
-                <DialogContent className="sm:max-w-[425px]">
+                <DialogContent className="sm:max-w-[520px] max-h-[80vh] overflow-y-auto">
                     <DialogHeader className={'!border-b-1 border-black pb-4'}>
                         <DialogTitle className={'text-center text-2xl'}>{eventData.name}</DialogTitle>
                     </DialogHeader>
@@ -110,6 +111,14 @@ export default function EventDetailsModal({user, event = defaultEvent, attendees
                                     )}
                                 </div>
                             </ScrollArea>
+
+                            {/* Voting (visible for creator + accepted participants) */}
+                            <EventVoting
+                                user={user}
+                                eventId={eventData.id}
+                                eventCreatorId={eventData.creator_id}
+                                serverActions={serverActions}
+                            />
 
                         </div>
 

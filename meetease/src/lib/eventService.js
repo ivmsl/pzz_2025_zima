@@ -394,6 +394,46 @@ export async function createEvent(eventData, creatorId) {
             // Don't throw here - event was created successfully, just log the error
         }
     }
+
+    // Create general voting (poll) if enabled
+    if (eventData.voting && eventData.vote?.question && Array.isArray(eventData.vote?.options)) {
+        console.log("Creating vote for event:", createdEvent.id, eventData.vote)
+        const question = String(eventData.vote.question).trim()
+        const options = eventData.vote.options.map((o) => String(o).trim()).filter(Boolean)
+
+        if (question && options.length >= 2) {
+            const { data: createdVote, error: voteError } = await supabase
+                .from("votes")
+                .insert({
+                    event_id: createdEvent.id,
+                    type: "general",
+                    question,
+                    deadline: null,
+                })
+                .select("id")
+                .single()
+
+            if (voteError || !createdVote) {
+                console.error("Error creating vote:", voteError)
+            } else {
+                console.log("Vote created:", createdVote)
+                const optionsRows = options.map((option_text) => ({
+                    vote_id: createdVote.id,
+                    option_text,
+                }))
+
+                const { error: optionsError } = await supabase
+                    .from("vote_options")
+                    .insert(optionsRows)
+
+                if (optionsError) {
+                    console.error("Error creating vote options:", optionsError)
+                } else {
+                    console.log("Vote options created:", optionsRows.length)
+                }
+            }
+        }
+    }
     
     return createdEvent
 }

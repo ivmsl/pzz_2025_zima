@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { Calendar, Clock, MapPin, Info, X, ChevronDown } from "lucide-react"
+import { Calendar, Clock, MapPin, Info, X, ChevronDown, Plus, Trash2 } from "lucide-react"
 import TimePicker from "./time-picker"
 import { searchUsersByUsername, fetchAllUsers } from "@/lib/userSearchActions"
 
@@ -18,6 +18,8 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, eventDa
     voting: false,
     participants: []
   })
+  const [voteQuestion, setVoteQuestion] = useState("")
+  const [voteOptions, setVoteOptions] = useState(["", ""])
   const [showStartTimePicker, setShowStartTimePicker] = useState(false)
   const [showEndTimePicker, setShowEndTimePicker] = useState(false)
   const [participantSearchQuery, setParticipantSearchQuery] = useState("")
@@ -32,10 +34,31 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, eventDa
 
   const handleSubmit = (e) => {
     e.preventDefault()
+    if (formData.voting) {
+      const question = voteQuestion.trim()
+      const options = voteOptions.map((o) => o.trim()).filter(Boolean)
+      if (!question) {
+        alert("Podaj nazwę głosowania.")
+        return
+      }
+      if (options.length < 2) {
+        alert("Dodaj przynajmniej 2 opcje do głosowania.")
+        return
+      }
+    }
+
     // Convert participant objects to IDs for submission
     const submitData = {
       ...formData,
-      participants: formData.participants.map(p => typeof p === 'object' ? p.id : p)
+      participants: formData.participants.map(p => typeof p === 'object' ? p.id : p),
+      ...(formData.voting
+        ? {
+            vote: {
+              question: voteQuestion.trim(),
+              options: voteOptions.map((o) => o.trim()).filter(Boolean),
+            },
+          }
+        : {}),
     }
     onSubmit?.(submitData)
     onClose?.()
@@ -244,9 +267,10 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, eventDa
 
         {/* Form Content */}
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-          <div className="flex gap-8 overflow-y-auto overflow-x-visible flex-1 p-8 pb-6">
-            {/* Left Section */}
-            <div className="flex-1 pb-4">
+          <div className="overflow-y-auto overflow-x-visible flex-1 p-8 pb-6">
+            <div className="flex gap-8 overflow-x-visible">
+              {/* Left Section */}
+              <div className="flex-1 pb-4">
               {/* Event Name */}
               <div className="flex items-center gap-3" style={{ marginBottom: '1rem', marginTop: '1.2rem' }}>
                 <Calendar className="w-5 h-5 text-gray-500 flex-shrink-0" />
@@ -352,17 +376,24 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, eventDa
                   type="checkbox"
                   id="voting"
                   checked={formData.voting}
-                  onChange={(e) => handleChange("voting", e.target.checked)}
+                  onChange={(e) => {
+                    const checked = e.target.checked
+                    handleChange("voting", checked)
+                    if (checked) {
+                      // Ensure we have at least 2 option inputs
+                      setVoteOptions((prev) => (prev && prev.length >= 2 ? prev : ["", ""]))
+                    }
+                  }}
                   className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
                 <label htmlFor="voting" className="text-gray-700 cursor-pointer">
                   Głosowanie
                 </label>
               </div>
-            </div>
+              </div>
 
-            {/* Right Section */}
-            <div className="flex-1 space-y-6 pb-4">
+              {/* Right Section */}
+              <div className="flex-1 space-y-6 pb-4">
               {/* Information Icon */}
               <div className="flex items-start gap-2">
                 <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0 mt-1">
@@ -447,7 +478,80 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, eventDa
                   ))}
                 </div>
               )}
+              </div>
             </div>
+
+            {/* Voting Builder */}
+            {formData.voting && (
+              <div className="mt-8 border border-gray-200 rounded-2xl p-6 bg-gray-50">
+                <div className="flex items-center justify-between gap-4 mb-4">
+                  <h3 className="text-xl font-semibold text-gray-900">Utwórz głosowanie</h3>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setVoteOptions((prev) => [...prev, ""])}
+                    className="flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Dodaj opcję
+                  </Button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Nazwa głosowania
+                    </label>
+                    <input
+                      type="text"
+                      value={voteQuestion}
+                      onChange={(e) => setVoteQuestion(e.target.value)}
+                      placeholder="Np. Gdzie idziemy na kolację?"
+                      className="w-full border border-gray-300 rounded-lg px-5 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Opcje (min. 2)
+                    </label>
+                    <div className="space-y-3">
+                      {voteOptions.map((opt, idx) => (
+                        <div key={idx} className="flex items-center gap-4">
+                          <input
+                            type="text"
+                            value={opt}
+                            onChange={(e) => {
+                              const value = e.target.value
+                              setVoteOptions((prev) => prev.map((p, i) => (i === idx ? value : p)))
+                            }}
+                            placeholder={`Opcja ${idx + 1}`}
+                            className="flex-1 border border-gray-300 rounded-lg px-5 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => {
+                              setVoteOptions((prev) => {
+                                if (prev.length <= 2) return prev
+                                return prev.filter((_, i) => i !== idx)
+                              })
+                            }}
+                            disabled={voteOptions.length <= 2}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Głosowanie jest anonimowe — widoczne będą tylko wyniki w procentach.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Footer - Fixed at bottom right */}
