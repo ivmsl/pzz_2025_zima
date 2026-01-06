@@ -5,57 +5,6 @@ import { createClient } from "@/utils/supabase/server"
 async function handleCreateEventServerAction(eventData) {
     "use server"
     const event = await createEvent(eventData)
-
-    // Safety: ensure voting was created (in case the insert was skipped/failed earlier)
-    if (eventData?.vote?.question && Array.isArray(eventData?.vote?.options)) {
-        const supabase = await createClient()
-        const question = String(eventData.vote.question).trim()
-        const options = eventData.vote.options.map((o) => String(o).trim()).filter(Boolean)
-
-        if (question && options.length >= 2) {
-            const { data: existingVote, error: existingVoteError } = await supabase
-                .from("votes")
-                .select("id")
-                .eq("event_id", event.id)
-                .limit(1)
-                .maybeSingle()
-
-            if (existingVoteError) {
-                console.error("Error checking existing vote:", existingVoteError)
-            }
-
-            if (!existingVote) {
-                const { data: createdVote, error: voteError } = await supabase
-                    .from("votes")
-                    .insert({
-                        event_id: event.id,
-                        type: "general",
-                        question,
-                        deadline: null,
-                    })
-                    .select("id")
-                    .single()
-
-                if (voteError || !createdVote) {
-                    console.error("Error creating vote (retry):", voteError)
-                } else {
-                    const optionsRows = options.map((option_text) => ({
-                        vote_id: createdVote.id,
-                        option_text,
-                    }))
-
-                    const { error: optionsError } = await supabase
-                        .from("vote_options")
-                        .insert(optionsRows)
-
-                    if (optionsError) {
-                        console.error("Error creating vote options (retry):", optionsError)
-                    }
-                }
-            }
-        }
-    }
-
     console.log("Event created:", event)
     redirect("/dashboard")
 }
@@ -274,6 +223,99 @@ async function handleFetchGeneralVote(eventId, userId) {
     }
 }
 
+async function handleFetchEventVotes(eventId, userId) {
+    "use server"
+    const supabase = await createClient()
+
+    // Access: creator or accepted participant
+    const { data: event, error: eventError } = await supabase
+        .from("events")
+        .select("id, creator_id")
+        .eq("id", eventId)
+        .single()
+
+    if (eventError || !event) {
+        return { success: false, votes: [], error: eventError?.message || "Nie znaleziono wydarzenia." }
+    }
+
+    if (event.creator_id !== userId) {
+        const { data: membership } = await supabase
+            .from("users_events")
+            .select("user_id")
+            .eq("user_id", userId)
+            .eq("event_id", eventId)
+            .maybeSingle()
+
+        if (!membership) {
+            return { success: false, votes: [], error: "Brak dostępu." }
+        }
+    }
+
+    // Some schemas may not have votes.created_at, so order by id for compatibility.
+    const { data: votes, error: votesError } = await supabase
+        .from("votes")
+        .select("id, event_id, type, question, deadline")
+        .eq("event_id", eventId)
+        .order("id", { ascending: true })
+
+    if (votesError) {
+        return { success: false, votes: [], error: votesError.message }
+    }
+
+    if (!votes || votes.length === 0) {
+        return { success: true, votes: [], error: null }
+    }
+
+    const result = []
+    for (const v of votes) {
+        const { data: options, error: optionsError } = await supabase
+            .from("vote_options")
+            .select("id, option_text")
+            .eq("vote_id", v.id)
+
+        if (optionsError) {
+            return { success: false, votes: [], error: optionsError.message }
+        }
+
+        const optionIds = (options || []).map((o) => o.id)
+        const { data: userVotes, error: userVotesError } = await supabase
+            .from("user_votes")
+            .select("user_id, vote_option_id")
+            .in("vote_option_id", optionIds.length ? optionIds : ["00000000-0000-0000-0000-000000000000"])
+
+        if (userVotesError) {
+            return { success: false, votes: [], error: userVotesError.message }
+        }
+
+        const counts = {}
+        for (const uv of userVotes || []) {
+            counts[uv.vote_option_id] = (counts[uv.vote_option_id] || 0) + 1
+        }
+
+        const totalVotes = (userVotes || []).length
+        const my = (userVotes || []).find((uv) => uv.user_id === userId)
+        const userVoteOptionId = my?.vote_option_id || null
+        const isClosed = v.deadline ? new Date(v.deadline).getTime() <= Date.now() : false
+
+        const optionsWithResults = (options || []).map((o) => {
+            const c = counts[o.id] || 0
+            const percent = totalVotes > 0 ? Math.round((c / totalVotes) * 100) : 0
+            return { ...o, votes: c, percent }
+        })
+
+        result.push({
+            ...v,
+            creator_id: event.creator_id,
+            isClosed,
+            totalVotes,
+            userVoteOptionId,
+            options: optionsWithResults,
+        })
+    }
+
+    return { success: true, votes: result, error: null }
+}
+
 async function handleCastGeneralVote(voteId, optionId, userId) {
     "use server"
     const supabase = await createClient()
@@ -367,7 +409,7 @@ async function handleCloseGeneralVote(voteId, userId) {
     try {
         const { data: vote } = await supabase
             .from("votes")
-            .select("id, event_id, deadline")
+            .select("id, event_id, deadline, type")
             .eq("id", voteId)
             .single()
 
@@ -383,12 +425,59 @@ async function handleCloseGeneralVote(voteId, userId) {
             return { success: false, error: "Only creator can close voting" }
         }
 
+        const closeAt = new Date().toISOString()
         const { error } = await supabase
             .from("votes")
-            .update({ deadline: new Date().toISOString() })
+            .update({ deadline: closeAt })
             .eq("id", voteId)
 
         if (error) return { success: false, error: error.message }
+
+        // Bonus: po zamknięciu głosowań specjalnych ustaw zwycięską opcję w evencie
+        if (vote.type === "location" || vote.type === "time") {
+            const { data: options } = await supabase
+                .from("vote_options")
+                .select("id, option_text")
+                .eq("vote_id", voteId)
+
+            const optionIds = (options || []).map((o) => o.id)
+            const { data: userVotes } = await supabase
+                .from("user_votes")
+                .select("vote_option_id")
+                .in("vote_option_id", optionIds.length ? optionIds : ["00000000-0000-0000-0000-000000000000"])
+
+            const counts = {}
+            for (const uv of userVotes || []) {
+                counts[uv.vote_option_id] = (counts[uv.vote_option_id] || 0) + 1
+            }
+
+            let winner = null
+            let winnerCount = -1
+            for (const opt of options || []) {
+                const c = counts[opt.id] || 0
+                if (c > winnerCount) {
+                    winner = opt
+                    winnerCount = c
+                }
+            }
+
+            if (winner?.option_text) {
+                if (vote.type === "location") {
+                    await supabase
+                        .from("events")
+                        .update({ location: winner.option_text, location_poll_enabled: false })
+                        .eq("id", vote.event_id)
+                } else if (vote.type === "time") {
+                    // expected: YYYY-MM-DD|HH:MM|HH:MM
+                    const [date, start, end] = String(winner.option_text).split("|")
+                    await supabase
+                        .from("events")
+                        .update({ date: date || null, time_start: start || null, time_end: end || null, time_poll_enabled: false })
+                        .eq("id", vote.event_id)
+                }
+            }
+        }
+
         return { success: true, error: null }
     } catch (error) {
         console.error("Error closing vote:", error)
@@ -448,6 +537,7 @@ const serverActions = {
     handleAcceptInvitation,
     handleDeclineInvitation,
     handleFetchGeneralVote,
+    handleFetchEventVotes,
     handleCastGeneralVote,
     handleCloseGeneralVote,
     handleDeleteGeneralVote

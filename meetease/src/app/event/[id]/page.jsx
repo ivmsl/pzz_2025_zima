@@ -7,7 +7,7 @@ import {
     parseEventDateTime,
 } from "@/lib/eventService"
 import { defaultEvent, defaultAttendees } from "@/lib/defaults"
-import EventVoting from "@/components/events/event-voting"
+import EventVotings from "@/components/events/event-votings"
 import serverActions from "@/lib/serverActions"
 
 export default async function EventPage({ params }) {
@@ -117,12 +117,15 @@ export default async function EventPage({ params }) {
                         </ScrollArea>
                     </div>
 
-                    {/* Voting */}
-                    <EventVoting
+                    {/* Głosowania */}
+                    <EventVotings
                         user={user}
                         eventId={eventId}
                         eventCreatorId={event.creator_id}
-                        serverActions={serverActions}
+                        fetchEventVotes={serverActions.handleFetchEventVotes}
+                        castVote={serverActions.handleCastGeneralVote}
+                        closeVote={serverActions.handleCloseGeneralVote}
+                        deleteVote={serverActions.handleDeleteGeneralVote}
                     />
 
                     {/* Footer Actions */}

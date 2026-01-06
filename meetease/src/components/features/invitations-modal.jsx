@@ -4,7 +4,15 @@ import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 
-export default function InvitationsModal({ user, open, onClose, serverActions, onInvitationHandled }) {
+export default function InvitationsModal({
+  user,
+  open,
+  onClose,
+  fetchPendingInvitations,
+  acceptInvitation,
+  declineInvitation,
+  onInvitationHandled,
+}) {
   const [invitations, setInvitations] = useState([])
   const [loading, setLoading] = useState(false)
   const [processing, setProcessing] = useState(new Set())
@@ -18,7 +26,7 @@ export default function InvitationsModal({ user, open, onClose, serverActions, o
   const loadInvitations = async () => {
     setLoading(true)
     try {
-      const result = await serverActions.handleFetchPendingInvitations(user.id)
+      const result = await fetchPendingInvitations(user.id)
       if (result.success) {
         setInvitations(result.invitations || [])
       }
@@ -32,7 +40,7 @@ export default function InvitationsModal({ user, open, onClose, serverActions, o
   const handleAccept = async (inviteId, eventId) => {
     setProcessing(prev => new Set(prev).add(inviteId))
     try {
-      const result = await serverActions.handleAcceptInvitation(inviteId, eventId, user.id)
+      const result = await acceptInvitation(inviteId, eventId, user.id)
       if (result.success) {
         // Remove invitation from list
         setInvitations(prev => prev.filter(inv => inv.id !== inviteId))
@@ -55,7 +63,7 @@ export default function InvitationsModal({ user, open, onClose, serverActions, o
   const handleDecline = async (inviteId) => {
     setProcessing(prev => new Set(prev).add(inviteId))
     try {
-      const result = await serverActions.handleDeclineInvitation(inviteId)
+      const result = await declineInvitation(inviteId)
       if (result.success) {
         // Remove invitation from list
         setInvitations(prev => prev.filter(inv => inv.id !== inviteId))

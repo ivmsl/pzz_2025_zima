@@ -13,7 +13,7 @@ import {ScrollArea} from "@/components/ui/scrollarea";
 import EventCreatorComponent from "@/components/features/event-creator"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
-import EventVoting from "@/components/events/event-voting"
+import EventVotings from "@/components/events/event-votings"
 
 
 //event details — przekazywac info o wydarzeniach do modalu 
@@ -42,7 +42,17 @@ const defaultAttendees = [
     { id: 6, name: "Jane Smith"},
 ];
 
-export default function EventDetailsModal({user, event = defaultEvent, attendees = defaultAttendees, serverActions}) {
+export default function EventDetailsModal({
+  user,
+  event = defaultEvent,
+  attendees = defaultAttendees,
+  onLeaveEvent,
+  fetchVote,
+  castVote,
+  closeVote,
+  deleteVote,
+  fetchEventVotes,
+}) {
 
     const [showEventCreator, setShowEventCreator] = useState(false)
 
@@ -112,12 +122,15 @@ export default function EventDetailsModal({user, event = defaultEvent, attendees
                                 </div>
                             </ScrollArea>
 
-                            {/* Voting (visible for creator + accepted participants) */}
-                            <EventVoting
+                            {/* Głosowania (ogólne + specjalne) */}
+                            <EventVotings
                                 user={user}
                                 eventId={eventData.id}
                                 eventCreatorId={eventData.creator_id}
-                                serverActions={serverActions}
+                                fetchEventVotes={fetchEventVotes}
+                                castVote={castVote}
+                                closeVote={closeVote}
+                                deleteVote={deleteVote}
                             />
 
                         </div>
@@ -130,7 +143,7 @@ export default function EventDetailsModal({user, event = defaultEvent, attendees
                     
                 }
                 <DialogClose asChild> 
-                    <Button variant="outline" onClick={() => serverActions.handleLeaveEventServerAction(eventData.id, user.id)}>
+                    <Button variant="outline" onClick={() => onLeaveEvent(eventData.id, user.id)}>
                         <span className={'text-red-500 cursor-pointer'}>Opuść wydarzenie</span>
                     </Button>
                     

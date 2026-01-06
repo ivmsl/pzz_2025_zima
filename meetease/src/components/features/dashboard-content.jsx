@@ -9,7 +9,23 @@ import EventDetailsModal from "@/components/events/eventDetailsModal"
 import UpcomingEventsModal from "./upcoming-events-modal"
 import InvitationsModal from "./invitations-modal"
 
-export default function DashboardContent({ user, logout, serverActions, events = [] }) {
+export default function DashboardContent({
+  user,
+  logout,
+  events = [],
+  onCreateEvent,
+  onJoinEvent,
+  onLeaveEvent,
+  fetchParticipatingEvents,
+  fetchPendingInvitations,
+  acceptInvitation,
+  declineInvitation,
+  fetchVote,
+  fetchEventVotes,
+  castVote,
+  closeVote,
+  deleteVote,
+}) {
   const [showEventCreator, setShowEventCreator] = useState(false)
   const [showJoinEventModal, setShowJoinEventModal] = useState(false)
   const [showUpcomingEvents, setShowUpcomingEvents] = useState(false)
@@ -70,7 +86,17 @@ export default function DashboardContent({ user, logout, serverActions, events =
       <div className="flex flex-col gap-4 p-8">     
                 <div className="flex flex-col py-4 gap-4 justify-center w-1/2">
                     {events && events.length > 0 && events.map((event) => (
-                            <EventDetailsModal user={user} event={event} key={event.id} serverActions={serverActions}/>
+                            <EventDetailsModal
+                              user={user}
+                              event={event}
+                              key={event.id}
+                              onLeaveEvent={onLeaveEvent}
+                              fetchVote={fetchVote}
+                              fetchEventVotes={fetchEventVotes}
+                              castVote={castVote}
+                              closeVote={closeVote}
+                              deleteVote={deleteVote}
+                            />
                     ))}
                 </div>
         </div>
@@ -79,7 +105,7 @@ export default function DashboardContent({ user, logout, serverActions, events =
         <EventCreatorComponent
           user={user}
           onClose={() => setShowEventCreator(false)}
-          onSubmit={serverActions.handleCreateEventServerAction}
+          onSubmit={onCreateEvent}
         />
       )}
 
@@ -88,7 +114,7 @@ export default function DashboardContent({ user, logout, serverActions, events =
               user={user}
               open={showJoinEventModal}
               onClose={() => setShowJoinEventModal(false)}
-              onJoinEvent={serverActions.handleJoinEventServerAction}
+              onJoinEvent={onJoinEvent}
           />
       )}
 
@@ -97,7 +123,13 @@ export default function DashboardContent({ user, logout, serverActions, events =
           user={user}
           open={showUpcomingEvents}
           onClose={() => setShowUpcomingEvents(false)}
-          serverActions={serverActions}
+          fetchParticipatingEvents={fetchParticipatingEvents}
+          onLeaveEvent={onLeaveEvent}
+          fetchVote={fetchVote}
+          fetchEventVotes={fetchEventVotes}
+          castVote={castVote}
+          closeVote={closeVote}
+          deleteVote={deleteVote}
         />
       )}
 
@@ -106,7 +138,9 @@ export default function DashboardContent({ user, logout, serverActions, events =
           user={user}
           open={showInvitations}
           onClose={() => setShowInvitations(false)}
-          serverActions={serverActions}
+          fetchPendingInvitations={fetchPendingInvitations}
+          acceptInvitation={acceptInvitation}
+          declineInvitation={declineInvitation}
           onInvitationHandled={handleInvitationHandled}
         />
       )}

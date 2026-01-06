@@ -5,7 +5,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import EventDetailsModal from "@/components/events/eventDetailsModal"
 import { Button } from "@/components/ui/button"
 
-export default function UpcomingEventsModal({ user, open, onClose, serverActions }) {
+export default function UpcomingEventsModal({
+  user,
+  open,
+  onClose,
+  fetchParticipatingEvents,
+  onLeaveEvent,
+  fetchVote,
+  fetchEventVotes,
+  castVote,
+  closeVote,
+  deleteVote,
+}) {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(false)
 
@@ -18,7 +29,7 @@ export default function UpcomingEventsModal({ user, open, onClose, serverActions
   const loadEvents = async () => {
     setLoading(true)
     try {
-      const result = await serverActions.handleFetchParticipatingEvents(user.id)
+      const result = await fetchParticipatingEvents(user.id)
       if (result && result.success) {
         setEvents(Array.isArray(result.events) ? result.events : [])
       } else {
@@ -107,7 +118,16 @@ export default function UpcomingEventsModal({ user, open, onClose, serverActions
                       </div>
                     </div>
                     <div className="mt-2">
-                      <EventDetailsModal user={user} event={event} serverActions={serverActions} />
+                      <EventDetailsModal
+                        user={user}
+                        event={event}
+                        onLeaveEvent={onLeaveEvent}
+                        fetchVote={fetchVote}
+                        fetchEventVotes={fetchEventVotes}
+                        castVote={castVote}
+                        closeVote={closeVote}
+                        deleteVote={deleteVote}
+                      />
                     </div>
                   </div>
                 </div>

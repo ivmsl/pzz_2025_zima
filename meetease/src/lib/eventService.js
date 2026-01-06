@@ -351,17 +351,22 @@ export async function createEvent(eventData, creatorId) {
     //     }
     // }
     
-    // Prepare event data for insertion
+    const specialVotes = eventData.specialVotes || {}
+    const hasTimeVote = !!specialVotes.time
+    const hasLocationVote = !!specialVotes.location
+
+    // Prepare event data for insertion (allow nulls when special voting is used)
+    const safeDate = eventData.date ? eventData.date.split('-').reverse().join('-') : null // DD-MM-YYYY -> YYYY-MM-DD
     const newEvent = {
         name: eventData.name,
         description: eventData.description || null,
         creator_id: eventData.creator_id,
-        time_start: eventData.startTime,
-        time_end: eventData.endTime,
-        date: eventData.date.split('-').reverse().join('-'), //DD-MM-YYYY to YYYY-MM-DD 
+        time_start: eventData.startTime || null,
+        time_end: eventData.endTime || null,
+        date: safeDate,
         location: eventData.location || null,
-        time_poll_enabled: eventData.voting || false,
-        location_poll_enabled: false, // Default to false, can be set separately if needed
+        time_poll_enabled: hasTimeVote,
+        location_poll_enabled: hasLocationVote,
     }
     
     // Insert the event
@@ -433,6 +438,49 @@ export async function createEvent(eventData, creatorId) {
                 }
             }
         }
+    }
+
+    // Create special votes (time/location) if provided
+    const createVote = async ({ type, question, options }) => {
+        const q = String(question || "").trim()
+        const opts = (options || []).map((o) => String(o).trim()).filter(Boolean)
+        if (!q || opts.length < 2) return
+
+        const { data: createdVote, error: voteError } = await supabase
+            .from("votes")
+            .insert({
+                event_id: createdEvent.id,
+                type,
+                question: q,
+                deadline: null,
+            })
+            .select("id")
+            .single()
+
+        if (voteError || !createdVote) {
+            console.error(`Error creating ${type} vote:`, voteError)
+            return
+        }
+
+        const optionsRows = opts.map((option_text) => ({
+            vote_id: createdVote.id,
+            option_text,
+        }))
+
+        const { error: optionsError } = await supabase
+            .from("vote_options")
+            .insert(optionsRows)
+
+        if (optionsError) {
+            console.error(`Error creating ${type} vote options:`, optionsError)
+        }
+    }
+
+    if (specialVotes.location) {
+        await createVote({ type: "location", ...specialVotes.location })
+    }
+    if (specialVotes.time) {
+        await createVote({ type: "time", ...specialVotes.time })
     }
     
     return createdEvent

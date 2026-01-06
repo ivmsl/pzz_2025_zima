@@ -32,7 +32,23 @@ export default async function DashboardPage() {
 
     return (
         <>
-            <DashboardContent user={userWithProfile} logout={logout} serverActions={serverActions} events={events} />
+            <DashboardContent
+              user={userWithProfile}
+              logout={logout}
+              events={events}
+              onCreateEvent={serverActions.handleCreateEventServerAction}
+              onJoinEvent={serverActions.handleJoinEventServerAction}
+              onLeaveEvent={serverActions.handleLeaveEventServerAction}
+              fetchParticipatingEvents={serverActions.handleFetchParticipatingEvents}
+              fetchPendingInvitations={serverActions.handleFetchPendingInvitations}
+              acceptInvitation={serverActions.handleAcceptInvitation}
+              declineInvitation={serverActions.handleDeclineInvitation}
+              fetchVote={serverActions.handleFetchGeneralVote}
+              fetchEventVotes={serverActions.handleFetchEventVotes}
+              castVote={serverActions.handleCastGeneralVote}
+              closeVote={serverActions.handleCloseGeneralVote}
+              deleteVote={serverActions.handleDeleteGeneralVote}
+            />
 
            
             {/* <EventDetailsModal user={user}/> */}

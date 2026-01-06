@@ -3,7 +3,15 @@
 import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 
-export default function EventVoting({ user, eventId, eventCreatorId, serverActions }) {
+export default function EventVoting({
+  user,
+  eventId,
+  eventCreatorId,
+  fetchVote,
+  castVote,
+  closeVote,
+  deleteVote,
+}) {
   const [loading, setLoading] = useState(false)
   const [vote, setVote] = useState(null)
   const [selectedOption, setSelectedOption] = useState(null)
@@ -16,7 +24,7 @@ export default function EventVoting({ user, eventId, eventCreatorId, serverActio
     setLoading(true)
     setError(null)
     try {
-      const res = await serverActions.handleFetchGeneralVote(eventId, user.id)
+      const res = await fetchVote(eventId, user.id)
       if (!res?.success) {
         setError(res?.error || "Nie udało się pobrać głosowania.")
         setVote(null)
@@ -51,7 +59,7 @@ export default function EventVoting({ user, eventId, eventCreatorId, serverActio
     setActionLoading(true)
     setError(null)
     try {
-      const res = await serverActions.handleCastGeneralVote(vote.id, selectedOption, user.id)
+      const res = await castVote(vote.id, selectedOption, user.id)
       if (!res?.success) {
         setError(res?.error || "Nie udało się oddać głosu.")
         return
@@ -69,7 +77,7 @@ export default function EventVoting({ user, eventId, eventCreatorId, serverActio
     setActionLoading(true)
     setError(null)
     try {
-      const res = await serverActions.handleCloseGeneralVote(vote.id, user.id)
+      const res = await closeVote(vote.id, user.id)
       if (!res?.success) {
         setError(res?.error || "Nie udało się zamknąć głosowania.")
         return
@@ -89,7 +97,7 @@ export default function EventVoting({ user, eventId, eventCreatorId, serverActio
     setActionLoading(true)
     setError(null)
     try {
-      const res = await serverActions.handleDeleteGeneralVote(vote.id, user.id)
+      const res = await deleteVote(vote.id, user.id)
       if (!res?.success) {
         setError(res?.error || "Nie udało się usunąć głosowania.")
         return

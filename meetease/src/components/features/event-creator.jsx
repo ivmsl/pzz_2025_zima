@@ -20,6 +20,22 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, eventDa
   })
   const [voteQuestion, setVoteQuestion] = useState("")
   const [voteOptions, setVoteOptions] = useState(["", ""])
+  // Głosowania specjalne (czas/miejsce)
+  const [locationVoteQuestion, setLocationVoteQuestion] = useState("Wybierz miejsce spotkania")
+  const [locationVoteOptions, setLocationVoteOptions] = useState(["", ""])
+  const [timeVoteQuestion, setTimeVoteQuestion] = useState("Wybierz termin spotkania")
+  const [timeVoteOptions, setTimeVoteOptions] = useState([
+    { date: "", start: "", end: "" },
+    { date: "", start: "", end: "" },
+  ])
+  const [fieldErrors, setFieldErrors] = useState({
+    date: false,
+    startTime: false,
+    endTime: false,
+    location: false,
+    locationVote: false,
+    timeVote: false,
+  })
   const [showStartTimePicker, setShowStartTimePicker] = useState(false)
   const [showEndTimePicker, setShowEndTimePicker] = useState(false)
   const [participantSearchQuery, setParticipantSearchQuery] = useState("")
@@ -34,6 +50,53 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, eventDa
 
   const handleSubmit = (e) => {
     e.preventDefault()
+
+    // Reset błędów
+    setFieldErrors({
+      date: false,
+      startTime: false,
+      endTime: false,
+      location: false,
+      locationVote: false,
+      timeVote: false,
+    })
+
+    // Reguły głosowań specjalnych:
+    const missingLocation = !String(formData.location || "").trim()
+    const missingTime =
+      !String(formData.date || "").trim() ||
+      !String(formData.startTime || "").trim() ||
+      !String(formData.endTime || "").trim()
+
+    // Jeżeli brak lokalizacji -> wymagane głosowanie miejsca
+    if (missingLocation) {
+      const q = String(locationVoteQuestion || "").trim()
+      const opts = locationVoteOptions.map((o) => String(o || "").trim()).filter(Boolean)
+      if (!q || opts.length < 2) {
+        setFieldErrors((prev) => ({ ...prev, location: true, locationVote: true }))
+        alert("Jeżeli nie podasz lokalizacji, musisz utworzyć głosowanie nad miejscem (min. 2 opcje).")
+        return
+      }
+    }
+
+    // Jeżeli brak terminu -> wymagane głosowanie czasu
+    if (missingTime) {
+      const q = String(timeVoteQuestion || "").trim()
+      const opts = timeVoteOptions
+        .map((o) => ({
+          date: String(o?.date || "").trim(),
+          start: String(o?.start || "").trim(),
+          end: String(o?.end || "").trim(),
+        }))
+        .filter((o) => o.date && o.start && o.end)
+
+      if (!q || opts.length < 2) {
+        setFieldErrors((prev) => ({ ...prev, date: true, startTime: true, endTime: true, timeVote: true }))
+        alert("Jeżeli nie podasz terminu, musisz utworzyć głosowanie nad czasem (min. 2 opcje).")
+        return
+      }
+    }
+
     if (formData.voting) {
       const question = voteQuestion.trim()
       const options = voteOptions.map((o) => o.trim()).filter(Boolean)
@@ -48,9 +111,37 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, eventDa
     }
 
     // Convert participant objects to IDs for submission
+    const specialVotes = {}
+    if (missingLocation) {
+      specialVotes.location = {
+        question: String(locationVoteQuestion || "").trim(),
+        options: locationVoteOptions.map((o) => String(o || "").trim()).filter(Boolean),
+      }
+    }
+    if (missingTime) {
+      // format opcji: YYYY-MM-DD|HH:MM|HH:MM (łatwe do zapisania w event po wygranej)
+      const normalized = timeVoteOptions
+        .map((o) => ({
+          date: String(o?.date || "").trim(), // DD-MM-YYYY
+          start: String(o?.start || "").trim(),
+          end: String(o?.end || "").trim(),
+        }))
+        .filter((o) => o.date && o.start && o.end)
+        .map((o) => {
+          const parts = o.date.split("-")
+          const yyyyMMdd = parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : o.date
+          return `${yyyyMMdd}|${o.start}|${o.end}`
+        })
+      specialVotes.time = {
+        question: String(timeVoteQuestion || "").trim(),
+        options: normalized,
+      }
+    }
+
     const submitData = {
       ...formData,
       participants: formData.participants.map(p => typeof p === 'object' ? p.id : p),
+      specialVotes,
       ...(formData.voting
         ? {
             vote: {
@@ -289,14 +380,13 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, eventDa
                 <Calendar className="w-5 h-5 text-gray-500 flex-shrink-0" />
                 <input
                   type="text"
-                  placeholder="Data, np: 30-05-2025"
+                  placeholder="Data, np: 30-05-2025 (opcjonalnie przy głosowaniu czasu)"
                   value={formData.date}
                   onChange={handleDateChange}
                   onBlur={handleDateBlur}
                   onKeyDown={handleDateKeyDown}
                   maxLength={10}
-                  className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
+                  className={`flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 ${fieldErrors.date ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"}`}
                 />
               </div>
 
@@ -306,15 +396,14 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, eventDa
                   <Clock className="w-5 h-5 text-gray-500 flex-shrink-0" />
                   <input
                     type="text"
-                    placeholder="Godzina startowa"
+                    placeholder="Godzina startowa (opcjonalnie przy głosowaniu czasu)"
                     value={formData.startTime}
                     readOnly
                     onClick={() => {
                       setShowStartTimePicker(true)
                       setShowEndTimePicker(false)
                     }}
-                    className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                    required
+                    className={`flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 cursor-pointer ${fieldErrors.startTime ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"}`}
                   />
                   {showStartTimePicker && (
                     <div className="absolute top-full left-0 mt-2 z-[100] overflow-visible">
@@ -333,15 +422,14 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, eventDa
                   <Clock className="w-5 h-5 text-gray-500 flex-shrink-0" />
                   <input
                     type="text"
-                    placeholder="Godzina końcowa"
+                    placeholder="Godzina końcowa (opcjonalnie przy głosowaniu czasu)"
                     value={formData.endTime}
                     readOnly
                     onClick={() => {
                       setShowEndTimePicker(true)
                       setShowStartTimePicker(false)
                     }}
-                    className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                    required
+                    className={`flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 cursor-pointer ${fieldErrors.endTime ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"}`}
                   />
                   {showEndTimePicker && (
                     <div className="absolute top-full left-0 mt-2 z-[100] overflow-visible">
@@ -363,10 +451,10 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, eventDa
                 <MapPin className="w-5 h-5 text-gray-500 flex-shrink-0" />
                 <input
                   type="text"
-                  placeholder="Lokalizacja"
+                  placeholder="Lokalizacja (opcjonalnie przy głosowaniu miejsca)"
                   value={formData.location}
                   onChange={(e) => handleChange("location", e.target.value)}
-                  className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 ${fieldErrors.location ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"}`}
                 />
               </div>
 
@@ -547,6 +635,157 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, eventDa
                     </div>
                     <p className="text-xs text-gray-500 mt-2">
                       Głosowanie jest anonimowe — widoczne będą tylko wyniki w procentach.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Głosowanie specjalne: miejsce (wymagane gdy puste pole Lokalizacja) */}
+            {!String(formData.location || "").trim() && (
+              <div className={`mt-6 border rounded-2xl p-6 ${fieldErrors.locationVote ? "border-red-300 bg-red-50" : "border-gray-200 bg-gray-50"}`}>
+                <div className="flex items-center justify-between gap-4 mb-4">
+                  <h3 className="text-xl font-semibold text-gray-900">Głosowanie nad miejscem (wymagane)</h3>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setLocationVoteOptions((prev) => [...prev, ""])}
+                    className="flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Dodaj opcję
+                  </Button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Pytanie</label>
+                    <input
+                      type="text"
+                      value={locationVoteQuestion}
+                      onChange={(e) => setLocationVoteQuestion(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg px-5 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Opcje (min. 2)</label>
+                    <div className="space-y-3">
+                      {locationVoteOptions.map((opt, idx) => (
+                        <div key={idx} className="flex items-center gap-4">
+                          <input
+                            type="text"
+                            value={opt}
+                            onChange={(e) => {
+                              const value = e.target.value
+                              setLocationVoteOptions((prev) => prev.map((p, i) => (i === idx ? value : p)))
+                            }}
+                            placeholder={`Miejsce ${idx + 1}`}
+                            className="flex-1 border border-gray-300 rounded-lg px-5 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => {
+                              setLocationVoteOptions((prev) => {
+                                if (prev.length <= 2) return prev
+                                return prev.filter((_, i) => i !== idx)
+                              })
+                            }}
+                            disabled={locationVoteOptions.length <= 2}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Głosowanie specjalne: czas (wymagane gdy puste pole Data/Godziny) */}
+            {(!String(formData.date || "").trim() || !String(formData.startTime || "").trim() || !String(formData.endTime || "").trim()) && (
+              <div className={`mt-6 border rounded-2xl p-6 ${fieldErrors.timeVote ? "border-red-300 bg-red-50" : "border-gray-200 bg-gray-50"}`}>
+                <div className="flex items-center justify-between gap-4 mb-4">
+                  <h3 className="text-xl font-semibold text-gray-900">Głosowanie nad czasem (wymagane)</h3>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setTimeVoteOptions((prev) => [...prev, { date: "", start: "", end: "" }])}
+                    className="flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Dodaj opcję
+                  </Button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Pytanie</label>
+                    <input
+                      type="text"
+                      value={timeVoteQuestion}
+                      onChange={(e) => setTimeVoteQuestion(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg px-5 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Opcje (min. 2)</label>
+                    <div className="space-y-3">
+                      {timeVoteOptions.map((opt, idx) => (
+                        <div key={idx} className="grid grid-cols-3 gap-4">
+                          <input
+                            type="text"
+                            value={opt.date}
+                            onChange={(e) => {
+                              const value = e.target.value
+                              setTimeVoteOptions((prev) => prev.map((p, i) => (i === idx ? { ...p, date: value } : p)))
+                            }}
+                            placeholder="DD-MM-YYYY"
+                            className="border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                          />
+                          <input
+                            type="text"
+                            value={opt.start}
+                            onChange={(e) => {
+                              const value = e.target.value
+                              setTimeVoteOptions((prev) => prev.map((p, i) => (i === idx ? { ...p, start: value } : p)))
+                            }}
+                            placeholder="HH:MM start"
+                            className="border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                          />
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="text"
+                              value={opt.end}
+                              onChange={(e) => {
+                                const value = e.target.value
+                                setTimeVoteOptions((prev) => prev.map((p, i) => (i === idx ? { ...p, end: value } : p)))
+                              }}
+                              placeholder="HH:MM koniec"
+                              className="flex-1 border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              onClick={() => {
+                                setTimeVoteOptions((prev) => {
+                                  if (prev.length <= 2) return prev
+                                  return prev.filter((_, i) => i !== idx)
+                                })
+                              }}
+                              disabled={timeVoteOptions.length <= 2}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Podaj datę i godziny w formacie: <b>DD-MM-YYYY</b> oraz <b>HH:MM</b>.
                     </p>
                   </div>
                 </div>
