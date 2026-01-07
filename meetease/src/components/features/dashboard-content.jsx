@@ -18,7 +18,7 @@ export default function DashboardContent({ user, logout, serverActions, events =
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-4xl font-bold mb-4">Dashboard</h1>
-          <p className="mb-4">Zalogowany jako: {user.username}</p>
+          <p className="mb-4">Zalogowany jako: {user.user_metadata.username}</p>
         </div>
         <div className="flex gap-3">
           <Button

@@ -8,18 +8,18 @@ import DashboardContent from "@/components/features/dashboard-content"
 // import { redirect } from "next/navigation"
 import EventDetailsModal from "@/components/events/eventDetailsModal"
 import serverActions from "@/lib/serverActions"
+import FriendsList from "@/components/features/friends/friendsList";
 
 
 
 export default async function DashboardPage() {
     const { supabase, user, logout } = await getAuthenticatedUser()
     const events = await fetchEventsByUserId(user.id)
-    console.log("Events:", events)
-
+    console.log(user)
     return (
         <>
             <DashboardContent user={user} logout={logout} serverActions={serverActions} events={events} />
-
+            <FriendsList userId={user.id}/>
            
             {/* <EventDetailsModal user={user}/> */}
         </>

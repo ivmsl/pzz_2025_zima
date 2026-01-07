@@ -9,11 +9,9 @@ import { redirect } from "next/navigation"
  */
 export async function getAuthenticatedUser() {
     const supabase = await createClient()
-    
     const {
         data: { user },
     } = await supabase.auth.getUser()
-
     if (!user) {
         redirect("/")
     }
@@ -41,7 +39,6 @@ export async function getAuthenticatedUser() {
  * @returns {Promise<void>}
  */
 export async function logout() {
-    "use server"
     const supabase = await createClient()
     await supabase.auth.signOut()
     redirect("/")
