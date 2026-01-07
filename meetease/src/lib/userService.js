@@ -71,7 +71,7 @@ export async function acceptPendingInvitation(inviteId, eventId) {
     const { data: existingEntry } = await supabase
         .from("users_events")
         .select("user_id")
-        .eq("user_id", userId)
+        .eq("user_id", user.id)
         .eq("event_id", eventId)
         .maybeSingle()
     
@@ -91,7 +91,7 @@ export async function acceptPendingInvitation(inviteId, eventId) {
         const { error: insertError } = await supabase
             .from("users_events")
             .insert({
-                user_id: userId,
+                user_id: user.id,
                 event_id: eventId
             })
         
