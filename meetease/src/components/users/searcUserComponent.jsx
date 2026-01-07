@@ -28,6 +28,7 @@ export default function SearchUserComponent({searchUsersFn, addChosenUsers, chos
 
     const handleParticipantSelect = (user) => {
         addChosenUsers(user);
+        setQuery("");
         setShowDropdown(false);
         setSearchResults([]);
     }
