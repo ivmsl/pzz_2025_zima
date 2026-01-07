@@ -26,8 +26,10 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, userSea
     description: event?.description || "",
     creator_id: user.id,
     voting: event?.time_poll_enabled || false,
-    participants: event?.attendees?.map(a => a.id) || []
+    participants: event?.attendees || [],
+    invitees: event?.invitees || []
   })
+
   const [showStartTimePicker, setShowStartTimePicker] = useState(false)
   const [showEndTimePicker, setShowEndTimePicker] = useState(false)
   const [errors, setErrors] = useState({})
@@ -438,6 +440,28 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, userSea
                         type="button"
                         onClick={() => {
                           handleChange("participants", formData.participants.filter((_, i) => i !== index))
+                        }}
+                        className="hover:text-blue-900"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              {formData.invitees.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {formData.invitees.map((invitee, index) => (
+                    <span
+                      key={invitee.id || index}
+                      className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center gap-2"
+                      style={{ marginTop: '1rem' }}
+                    >
+                      {invitee.username || invitee.email || invitee } {" (oczekuje na potwierdzenie)"}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleChange("invitees", formData.invitees.filter((_, i) => i !== index))
                         }}
                         className="hover:text-blue-900"
                       >

@@ -120,6 +120,20 @@ export async function declinePendingInvitation(inviteId) {
 
 }
 
+export async function cacnelPendingInvitation(inviteId) {
+    const { supabase, _ } = await getAuthenticatedUser()
+    const { error } = await supabase
+            .from("invites")
+            .update({ status: "canceled" })
+            .eq("id", inviteId)
+        
+    if (error) {
+        console.error("Error canceling invitation:", error)
+        return { success: false, error: error.message }
+    }
+    return { success: true, error: null }
+}
+
 
 export async function searchUsersByUsername(searchQuery) {
     if (!searchQuery || searchQuery.trim().length < 1) {

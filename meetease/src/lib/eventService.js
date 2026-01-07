@@ -1,6 +1,7 @@
 import { createClient } from "@/utils/supabase/server"
 import { notFound } from "next/navigation"
 import { getAuthenticatedUser } from "@/utils/auth"
+import { cacnelPendingInvitation } from "./userService"
 
 /**
  * Check if user has access to an event
@@ -172,7 +173,11 @@ export async function fetchEventsByUserId(userId) {
             ...event,
             code: event_codes?.at(0)?.code
         }))
-    
+        
+        eventsCreatedByUserWithCode = await Promise.all(eventsCreatedByUserWithCode.map(async (event) => {
+            const invitees = await fetchEventInvitees(event.id)
+            return { ...event, invitees: invitees || [] }
+        }))
     }
 
     console.log("Events created by user WITH CODE:", eventsCreatedByUserWithCode)
@@ -246,12 +251,13 @@ export async function fetchEventsByUserId(userId) {
  * @param {string} creatorId - The event creator ID
  * @returns {Promise<Array>} - Array of attendee objects with id and name
  */
+
+
 export async function fetchEventAttendees(eventId, creatorId) {
     const supabase = await createClient()
-    
+
     // Try users_events first (common Supabase naming), fallback to user_events
     let attendeesData = null
-
 
     // Get all user ids for the event
     const { data: attendeesIds, error: attendeesError } = await supabase
@@ -263,7 +269,6 @@ export async function fetchEventAttendees(eventId, creatorId) {
         console.log("Error:", attendeesError)
         return []
     } else {
-        console.log("Attendees ids:", attendeesIds)
 
         const attendeesIdsArray = attendeesIds.map((attendee) => String(attendee.user_id)) //trzeba było tu dać String() bo UUID...
 
@@ -272,9 +277,6 @@ export async function fetchEventAttendees(eventId, creatorId) {
             .select("id, username, email")
             .in("id", attendeesIdsArray)
             // .single()
-    
-
-        console.log("Attendees data:", attendeesData, "Error:", attendeesError)
 
         if (attendeesError || !attendeesData) {
             console.log("Error:", attendeesError)
@@ -283,79 +285,38 @@ export async function fetchEventAttendees(eventId, creatorId) {
             return attendeesData
         }
     }
-    
-    // Try users_events table name
-    // const { data: data1, error: error1 } = await supabase
-    //     .from("users_events")
-    //     .select(`
-    //         user_id,
-    //         profiles:user_id!inner (
-    //             id,
-    //             username,
-    //             email
-    //         )
-    //     `)
-    //     .eq("event_id", eventId)
-    
-    // if (!error1 && data1) {
-    //     attendeesData = data1
-    // } else {
-    //     // Fallback to user_events table name
-    //     const { data: data2, error: error2 } = await supabase
-    //         .from("users_events")
-    //         .select(`
-    //             user_id
-    //         `)
-    //         .eq("event_id", eventId)
-    //     console.log("Error1:", error1, "Error2:", error2, data2)
-        // attendeesData = data2
-    // }
-    
-    // If join doesn't work, fetch user_ids and then users separately
-    let attendees = []
-    if (attendeesData && attendeesData.length > 0) {
-        // Check if join worked (users data is present)
-        if (attendeesData[0]?.users) {
-            attendees = attendeesData.map((item) => ({
-                id: item.users?.id || item.user_id,
-                name: item.users?.username || item.users?.email || "Unknown User",
-            }))
-        } else {
-            // Join didn't work, fetch users separately
-            const userIds = attendeesData.map((item) => item.user_id)
-            if (userIds.length > 0) {
-                const { data: usersData } = await supabase
-                    .from("users")
-                    .select("id, username, email")
-                    .in("id", userIds)
-                
-                attendees = usersData?.map((user) => ({
-                    id: user.id,
-                    name: user.username || user.email || "Unknown User",
-                })) || []
-            }
-        }
-    }
-    
-    // Add creator to attendees if not already present
-    const creatorInAttendees = attendees.some((a) => a.id === creatorId)
-    if (!creatorInAttendees && creatorId) {
-        // Fetch creator info
-        const { data: creatorData } = await supabase
-            .from("users")
-            .select("id, username, email")
-            .eq("id", creatorId)
-            .single()
+}
+
+export async function fetchEventInvitees(eventId) {
+    const {supabase, user} = await getAuthenticatedUser()
+
+    const { data: invitees, error: inviteesError } = await supabase
+        .from("invites")
+        .select("receiver_id")
+        .eq("event_id", eventId)
+        .eq("status", "pending")
+
+    if (inviteesError) {
+        throw new Error(inviteesError?.message || "Failed to fetch invitees")
         
-        if (creatorData) {
-            attendees.unshift({
-                id: creatorData.id,
-                name: creatorData.username || creatorData.email || "Unknown User",
-            })
+    }
+
+    const inviteesIdsArray = invitees.map((invitee) => String(invitee.receiver_id))
+
+    if (invitees.length > 0) {
+        const { data: attendeesData, error: attendeesError } = await supabase
+            .from("profiles")
+            .select("id, username, email")
+            .in("id", inviteesIdsArray)
+        
+        if (attendeesError) {
+            throw new Error(attendeesError?.message || "Failed to fetch attendees")
+        }
+        else {
+            console.log("Invitees data:", attendeesData)
+            return attendeesData
         }
     }
-    
-    return attendees
 }
 
 
@@ -516,7 +477,38 @@ export async function updateEvent(eventId, eventData, userId) {
         })
 
     }
+
+    if (eventData.invitees !== undefined) {
+        const eventDatainviteesIDs = eventData.invitees.map(i => i.id)
+        const { data: invitesSentIDs, error: invitesSentError } = await supabase
+            .from("invites")
+            .select("receiver_id, id")
+            .eq("event_id", eventId)
+            .eq("status", "pending")
+
+        if (invitesSentError) {
+            console.error("Error removing existing invitees:", invitesSentError)
+        } else {
+
+            const invitesToCancel = invitesSentIDs.map((el) => String(el.receiver_id)).filter((e) => !eventDatainviteesIDs.includes(e))
+
+            console.log(`invitesToCancel: ${invitesToCancel}, eventData.invitees: ${eventDatainviteesIDs}, invitesSentIDs: ${invitesSentIDs.map((el) => String(el.receiver_id))}`)
+            
+            for (const invite of invitesSentIDs) {
+                if (invitesToCancel.includes(String(invite.receiver_id))) {
+                    await cacnelPendingInvitation(invite.id)
+                    .catch((error) => {
+                        if (error) {
+                            console.error("Error canceling invitation:", error)
+                        }
+                    })
+                }
+
+            }
+        }
+    }
     return updated
+ 
 }
 
 
