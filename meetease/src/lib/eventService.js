@@ -156,52 +156,77 @@ export async function fetchEvent(eventId) {
 export async function fetchEventsByUserId(userId) {
     const { supabase, user } = await getAuthenticatedUser()
 
-    const { data: eventsCreatedByUser, error: eventsError } = await supabase
+    //check events created by user
+    let eventsCreatedByUserWithCode = []
+    const { data: eventsCreatedByUser, error: eventsCreatedByUserError } = await supabase
         .from("events")
         .select("*, event_codes( code )")
         .eq("creator_id", user.id)
 
-    if (eventsError || !eventsCreatedByUser) {
-        console.log("Error:", eventsError)
-        return []
+    if (eventsCreatedByUserError || !eventsCreatedByUser) {
+        console.log("Error:", eventsCreatedByUserError)
+        // return []
+    } else {
+        //add code info 
+        eventsCreatedByUserWithCode = eventsCreatedByUser?.map(({ event_codes, ...event }) => ({
+            ...event,
+            code: event_codes?.at(0)?.code
+        }))
+    
     }
 
-    const eventsCreatedByUserWithCode = eventsCreatedByUser?.map(({ event_codes, ...event }) => ({
-        ...event,
-        code: event_codes?.at(0)?.code
-    }))
-
     console.log("Events created by user WITH CODE:", eventsCreatedByUserWithCode)
+
+    
+    //fetch all other events user is attending
+    let eventsUserIsAttendingData = []
 
     const { data: eventsUserIsAttending, error: eventsUserIsAttendingError } = await supabase
         .from("users_events")
         .select("event_id")
         .eq("user_id", user.id)
 
-    let eventsUserIsAttendingData = []
     if (eventsUserIsAttendingError || !eventsUserIsAttending) {
         console.log("Error:", eventsUserIsAttendingError)
     } else {
         const eventsUserIsAttendingArray = eventsUserIsAttending.map((event) => String(event.event_id))
+
         let { data: eventsUserIsAttendingDB, error: eventsUserIsAttendingError } = await supabase
             .from("events")
             .select("*")
             .in("id", eventsUserIsAttendingArray)
+            .order("date", { ascending: true })
 
         if (eventsUserIsAttendingError || !eventsUserIsAttendingData) {
             console.log("Error:", eventsUserIsAttendingError)
             eventsUserIsAttendingData = []
         } else {
-            eventsUserIsAttendingData = eventsUserIsAttendingDB
+            eventsUserIsAttendingData = await Promise.all(
+                        eventsUserIsAttendingDB.map(async (event) => {
+                            
+                            const { data: creatorProfile } = await supabase
+                                .from("profiles")
+                                .select("username, email")
+                                .eq("id", event.creator_id)
+                                .single()
+                            
+                            return {
+                                ...event,
+                                creatorUsername: creatorProfile?.username || creatorProfile?.email || "Nieznany"
+                            }
+                        })
+                    )            
+            
         }
+
         console.log("Events user is attending data:", eventsUserIsAttendingData)
     }
+
 
     // The original code has a scope issue: `eventsUserIsAttendingData` is re-declared as a local variable inside the `else` block,
     // so its value is not accessible here. Fix by moving its declaration before the if/else, and assign to it instead of redeclaring.
     const totalEvents = [
         ...eventsCreatedByUserWithCode,
-        // ...eventsCreatedByUser,
         ...eventsUserIsAttendingData
     ]
 
@@ -416,7 +441,7 @@ export async function updateEvent(eventId, eventData, userId) {
         .single()
     
     if (fetchError || !existingEvent) {
-        throw new Error("Event not found")
+        throw new Error(`Event not found: ${eventId}`)
     }
     
     if (existingEvent.creator_id !== userId) {
@@ -446,38 +471,69 @@ export async function updateEvent(eventId, eventData, userId) {
         console.error("Error updating event:", updateError)
         throw new Error(updateError?.message || "Failed to update event")
     }
+
+    const {data: existingParticipants, error: existingParticipantsError} = await supabase
+        .from("users_events")
+        .select("user_id")
+        .eq("event_id", eventId)
     
+    if (existingParticipantsError) {
+        console.log("Error fetching existing participants:", existingParticipantsError)
+        throw new Error(existingParticipantsError?.message || "Failed to fetch existing participants")
+    }
+    
+    let participantsToRemove = []
+    let participantsToInvite = []
+    
+    if (eventData.participants !== undefined) {
+        const eventParticipantsIDs = eventData.participants.map(p => p.id)
+        participantsToRemove = existingParticipants.filter(p => !eventParticipantsIDs.includes(p.user_id))
+        participantsToInvite = eventParticipantsIDs.filter(p => !existingParticipants.includes(p.user_id))
+    }
+    
+
     // Handle participants update if provided
     if (eventData.participants !== undefined) {
-        // Remove existing participants
+        // Remove participants that needs to be removed
         const { error: deleteError } = await supabase
             .from("users_events")
             .delete()
             .eq("event_id", eventId)
+            .in("user_id", participantsToRemove)
         
         if (deleteError) {
             console.error("Error removing existing participants:", deleteError)
         }
         
         // Add new participants if any
-        if (eventData.participants && eventData.participants.length > 0) {
-            const participantsData = eventData.participants.map((participantId) => ({
-                event_id: eventId,
-                user_id: participantId,
-            }))
-            
-            const { error: participantsError } = await supabase
-                .from("users_events")
-                .insert(participantsData)
-            
-            if (participantsError) {
-                console.error("Error adding participants:", participantsError)
-                // Don't throw here - event was updated successfully, just log the error
-            }
-        }
+        participantsToInvite.forEach(async (participantId) => {
+            await inviteUserToEvent(eventId, participantId)
+            .catch((error) => {
+                if (error) {
+                    // console.error("Error inviting user to event:", error)
+                }
+            })
+        })
+
     }
-    
     return updated
+}
+
+
+export async function inviteUserToEvent(eventId, participantId) {
+    const { supabase, user } = await getAuthenticatedUser()
+    const { error: inviteError } = await supabase
+        .from("invites")
+        .insert({
+            event_id: eventId,
+            sender_id: user.id,
+            receiver_id: participantId,
+            status: "pending"
+        })
+    if (inviteError) {
+        console.error("Error inviting user to event:", inviteError)
+        throw new Error(inviteError?.message || "Failed to invite user to event")
+    }
 }
 
 /**
@@ -487,8 +543,8 @@ export async function updateEvent(eventId, eventData, userId) {
  * @returns {Promise<void>}
  */
 export async function deleteEvent(eventId, userId) {
-    const supabase = await createClient()
-    
+    const { supabase, user } = await getAuthenticatedUser()
+
     // First verify the user is the creator
     const { data: existingEvent, error: fetchError } = await supabase
         .from("events")
@@ -500,7 +556,7 @@ export async function deleteEvent(eventId, userId) {
         throw new Error("Event not found")
     }
     
-    if (existingEvent.creator_id !== userId) {
+    if (existingEvent.creator_id !== user.id) {
         throw new Error("Only the event creator can delete this event")
     }
     
@@ -514,6 +570,24 @@ export async function deleteEvent(eventId, userId) {
         console.error("Error removing participants:", participantsError)
         // Continue with event deletion even if participant removal fails
     }
+
+    const {error: deleteFromCodeError} = await supabase
+        .from("event_codes")
+        .delete()
+        .eq("event_id", eventId)
+    
+    if (deleteFromCodeError) {
+        console.error("Error removing code from event:", deleteFromCodeError)
+    }
+
+    const {error: deleteFromInvitesError} = await supabase
+        .from("invites")
+        .delete()
+        .eq("event_id", eventId)
+    
+    if (deleteFromInvitesError) {
+        console.error("Error removing invites:", deleteFromInvitesError)
+    }
     
     // Delete the event
     const { error: deleteError } = await supabase
@@ -525,6 +599,8 @@ export async function deleteEvent(eventId, userId) {
         console.error("Error deleting event:", deleteError)
         throw new Error(deleteError?.message || "Failed to delete event")
     }
+
+    console.log("Event deleted successfully", eventId)
 }
 
 /**
@@ -602,138 +678,5 @@ export function parseEventDateTime(event) {
     
     return { eventDate, eventTime }
 }
-
-/**
- * Fetch events user is participating in (from users_events table) and events created by user
- * @param {string} userId - The user ID
- * @returns {Promise<Array>} - Array of event objects
- */
-export async function fetchUserParticipatingEvents(userId) {
-    const supabase = await createClient()
-    
-    // Get event IDs from users_events (events user is attending)
-    const { data: userEvents, error: userEventsError } = await supabase
-        .from("users_events")
-        .select("event_id")
-        .eq("user_id", userId)
-    
-    let eventIds = []
-    if (!userEventsError && userEvents) {
-        eventIds = userEvents.map(ue => ue.event_id)
-    }
-    
-    // Also get events created by the user
-    const { data: createdEvents, error: createdEventsError } = await supabase
-        .from("events")
-        .select("id")
-        .eq("creator_id", userId)
-    
-    if (!createdEventsError && createdEvents) {
-        const createdEventIds = createdEvents.map(e => e.id)
-        // Combine both lists and remove duplicates
-        eventIds = [...new Set([...eventIds, ...createdEventIds])]
-    }
-    
-    if (eventIds.length === 0) {
-        return []
-    }
-    
-    // Fetch all event details
-    const { data: events, error: eventsError } = await supabase
-        .from("events")
-        .select("*")
-        .in("id", eventIds)
-        .order("date", { ascending: true })
-    
-    if (eventsError || !events) {
-        console.error("Error fetching participating events:", eventsError)
-        return []
-    }
-    
-    // Fetch creator usernames for events where user is not the creator
-    const eventsWithCreators = await Promise.all(
-        events.map(async (event) => {
-            if (event.creator_id === userId) {
-                return event // User is creator, no need to fetch
-            }
-            
-            const { data: creatorProfile } = await supabase
-                .from("profiles")
-                .select("username, email")
-                .eq("id", event.creator_id)
-                .single()
-            
-            return {
-                ...event,
-                creatorUsername: creatorProfile?.username || creatorProfile?.email || "Nieznany"
-            }
-        })
-    )
-    
-    return eventsWithCreators || []
-}
-
-/**
- * Fetch pending invitations for a user
- * @param {string} userId - The user ID (receiver)
- * @returns {Promise<Array>} - Array of invitation objects with event and sender details
- */
-export async function fetchPendingInvitations(userId) {
-    const supabase = await createClient()
-    
-    // Fetch invitations
-    const { data: invitations, error: invitationsError } = await supabase
-        .from("invites")
-        .select("id, event_id, sender_id, receiver_id, status")
-        .eq("receiver_id", userId)
-        .eq("status", "pending")
-    
-    if (invitationsError || !invitations || invitations.length === 0) {
-        return []
-    }
-    
-    // Fetch event details, sender profiles, and creator usernames
-    const invitationsWithDetails = await Promise.all(
-        invitations.map(async (invitation) => {
-            // Fetch event
-            const { data: event } = await supabase
-                .from("events")
-                .select("id, name, date, time_start, time_end, location, description, creator_id")
-                .eq("id", invitation.event_id)
-                .single()
-            
-            // Fetch sender profile
-            const { data: senderProfile } = await supabase
-                .from("profiles")
-                .select("username, email")
-                .eq("id", invitation.sender_id)
-                .single()
-            
-            // Fetch creator username if event exists
-            let creatorUsername = null
-            if (event?.creator_id) {
-                const { data: creatorProfile } = await supabase
-                    .from("profiles")
-                    .select("username, email")
-                    .eq("id", event.creator_id)
-                    .single()
-                
-                creatorUsername = creatorProfile?.username || creatorProfile?.email || "Nieznany"
-            }
-            
-            return {
-                ...invitation,
-                sender: senderProfile || { username: "Unknown", email: "" },
-                event: event ? {
-                    ...event,
-                    creatorUsername
-                } : null
-            }
-        })
-    )
-    
-    return invitationsWithDetails
-}
-
 
 

@@ -4,11 +4,11 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Calendar, Clock, MapPin, Info, X, ChevronDown } from "lucide-react"
 import TimePicker from "./time-picker"
-// import { searchUsersByUsername, fetchAllUsers } from "@/lib/userSearchActions"
-import SearchUserComponent from "@/components/users/searcUserComponent"
-import serverActions from "@/lib/serverActions"
 
-export default function EventCreatorComponent({ user, onClose, onSubmit, event = null, isEditing = false, participants = [] }) {
+import SearchUserComponent from "@/components/users/searcUserComponent"
+// import serverActions from "@/lib/serverActions"
+
+export default function EventCreatorComponent({ user, onClose, onSubmit, userSearchFn, event = null, isEditing = false, participants = [] }) {
   // Convert date from YYYY-MM-DD to DD-MM-YYYY format
   const formatDateForInput = (dateString) => {
     if (!dateString) return ""
@@ -17,6 +17,7 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, event =
   }
 
   const [formData, setFormData] = useState({
+    id: event?.id || "",
     name: event?.name || "",
     date: event?.date ? formatDateForInput(event.date) : "",
     startTime: event?.time_start || "",
@@ -47,6 +48,8 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, event =
     // Reset errors
     const newErrors = {}
     
+    console.log("submitting formData", formData);
+
     // Validate required fields
     if (!formData.name.trim()) {
       newErrors.name = "Nazwa wydarzenia jest wymagana"
@@ -185,7 +188,7 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, event =
       // Check if click is outside both time picker containers
       const clickedInsideStart = startTimeRef.current?.contains(event.target)
       const clickedInsideEnd = endTimeRef.current?.contains(event.target)
-      const clickedInsideParticipant = participantSearchRef.current?.contains(event.target)
+      
       
       if (!clickedInsideStart && showStartTimePicker) {
         setShowStartTimePicker(false)
@@ -193,16 +196,13 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, event =
       if (!clickedInsideEnd && showEndTimePicker) {
         setShowEndTimePicker(false)
       }
-      if (!clickedInsideParticipant && showParticipantDropdown) {
-        setShowParticipantDropdown(false)
-      }
     }
 
-    if (showStartTimePicker || showEndTimePicker || showParticipantDropdown) {
+    if (showStartTimePicker || showEndTimePicker) {
       document.addEventListener("mousedown", handleClickOutside)
       return () => document.removeEventListener("mousedown", handleClickOutside)
     }
-  }, [showStartTimePicker, showEndTimePicker, showParticipantDropdown])
+  }, [showStartTimePicker, showEndTimePicker])
 
 
 
@@ -422,7 +422,7 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, event =
               </div>
 
               {/* Add Participants */}
-              <SearchUserComponent searchUsersFn={serverActions.handleSearchUserByUsername} addChosenUsers={addChosenUsers} />
+              <SearchUserComponent searchUsersFn={userSearchFn} addChosenUsers={addChosenUsers} chosenUsers={formData.participants} />
 
               {/* Selected Participants */}
               {formData.participants.length > 0 && (

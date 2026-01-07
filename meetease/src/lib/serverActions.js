@@ -1,15 +1,13 @@
 
-import { createEvent, joinEventByCode, leaveEvent, updateEvent, deleteEvent, } from "@/lib/eventService"
-import { fetchPendingInvitations, acceptPendingInvitation, declinePendingInvitation } from "@/lib/userService"
+import { createEvent, joinEventByCode, leaveEvent, updateEvent, deleteEvent, fetchEventsByUserId} from "@/lib/eventService"
+import { fetchPendingInvitations, acceptPendingInvitation, declinePendingInvitation, searchUsersByUsername } from "@/lib/userService"
 
-import { redirect } from "next/navigation"
-import { createClient } from "@/utils/supabase/server"
 
 async function handleCreateEventServerAction(eventData) {
     "use server"
     const event = await createEvent(eventData)
     console.log("Event created:", event)
-    redirect("/dashboard")
+    // redirect("/dashboard")
 }
 
 async function handleJoinEventServerAction(code, userId) {
@@ -46,12 +44,15 @@ async function handleUpdateEventServerAction(eventId, eventData, userId) {
 
 async function handleDeleteEventServerAction(eventId) {
     "use server"
-    const { success, error } = await deleteEvent(eventId)
-    if (error) {
-       return { success: false, error: error }
-    } else {
-        return { success: true, error: null }
-    }
+        await deleteEvent(eventId)
+        .then((_) => {
+            return { success: true, error: null }
+        })
+        .catch((error) => {
+            console.error("Error deleting event:", error)
+            return { success: false, error: error.message }
+        })
+        
 }
 
 async function handleFetchParticipatingEvents() {
@@ -94,24 +95,30 @@ async function handleAcceptInvitation(inviteId, eventId) {
 
 async function handleDeclineInvitation(inviteId) {
     "use server"
-    const supabase = await createClient()
-    
     try {
-        const { error } = await supabase
-            .from("invites")
-            .update({ status: "declined" })
-            .eq("id", inviteId)
-        
+        const { success, error } = await declinePendingInvitation(inviteId)
         if (error) {
-            console.error("Error declining invitation:", error)
-            return { success: false, error: error.message }
+            return { success: false, error: error }
+        } else {
+            return { success: true, error: null }
         }
-        
-        return { success: true, error: null }
     } catch (error) {
         console.error("Error declining invitation:", error)
         return { success: false, error: error.message }
     }
+}
+
+async function handleSearchUserByUsername(query) {
+    "use server"
+    return await searchUsersByUsername(query)
+        .then((users) => {
+          console.log("users", users);
+          return users
+        })
+        .catch((error) => {
+            console.error("Error searching users:", error)
+            return []
+        })
 }
 
 const serverActions = {
@@ -123,6 +130,7 @@ const serverActions = {
     handleFetchParticipatingEvents,
     handleFetchPendingInvitations,
     handleAcceptInvitation,
-    handleDeclineInvitation
+    handleDeclineInvitation,
+    handleSearchUserByUsername
 }
 export default serverActions

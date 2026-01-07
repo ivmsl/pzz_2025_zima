@@ -1,21 +1,26 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { formatDate, formatTime } from "@/lib/timeUtils"
 
 export default function InvitationsModal({ user, open, onClose, serverActions, onInvitationHandled }) {
   const [invitations, setInvitations] = useState([])
   const [loading, setLoading] = useState(false)
   const [processing, setProcessing] = useState(new Set())
+  const loadingRef = useRef(false)
 
   useEffect(() => {
-    if (open) {
+    if (open && !loadingRef.current) {
       loadInvitations()
     }
-  }, [open])
+  }, [open, user.id])
 
   const loadInvitations = async () => {
+    // Prevent duplicate calls
+    if (loadingRef.current) return
+    loadingRef.current = true
     setLoading(true)
     try {
       const result = await serverActions.handleFetchPendingInvitations(user.id)
@@ -26,6 +31,7 @@ export default function InvitationsModal({ user, open, onClose, serverActions, o
       console.error("Error loading invitations:", error)
     } finally {
       setLoading(false)
+      loadingRef.current = false
     }
   }
 
@@ -71,33 +77,10 @@ export default function InvitationsModal({ user, open, onClose, serverActions, o
     }
   }
 
-  const formatDate = (dateString) => {
-    if (!dateString) return "Brak daty"
-    try {
-      const date = new Date(dateString)
-      return date.toLocaleDateString("pl-PL", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      })
-    } catch {
-      return dateString
-    }
-  }
-
-  const formatTime = (timeString) => {
-    if (!timeString) return ""
-    // If time is in HH:MM format, return as is
-    if (timeString.match(/^\d{2}:\d{2}$/)) {
-      return timeString
-    }
-    return timeString
-  }
-
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px] max-h-[80vh] flex flex-col p-0 gap-0">
-        <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-4 border-b">
+        <DialogHeader className="shrink-0 px-6 pt-6 pb-4 border-b">
           <DialogTitle className="text-2xl">Zaproszenia</DialogTitle>
         </DialogHeader>
         

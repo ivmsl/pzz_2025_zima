@@ -3,17 +3,12 @@
 import { useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import EventCreatorComponent from "./event-creator"
-import JoinEventModal from "@/components/features/joinEventModal";
 import EventDetailsModal from "@/components/events/eventDetailsModal"
-
 import UpcomingEventsModal from "./upcoming-events-modal"
 import InvitationsModal from "./invitations-modal"
+import EventCard from "@/components/events/eventCard"
 
 export default function DashboardContent({ user, logout, serverActions, events = [] }) {
-  const [showEventCreator, setShowEventCreator] = useState(false)
-  const [showJoinEventModal, setShowJoinEventModal] = useState(false)
-  
   const [showUpcomingEvents, setShowUpcomingEvents] = useState(false)
   const [showInvitations, setShowInvitations] = useState(false)
   // const [showEventDetailsModal, setShowEventDetailsModal] = useState(false)
@@ -72,7 +67,7 @@ export default function DashboardContent({ user, logout, serverActions, events =
       <div className="flex flex-col gap-4 p-8">     
                 <div className="flex flex-col py-4 gap-4 justify-center w-1/2">
                     {events && events.length > 0 && events.map((event) => (
-                            <EventDetailsModal user={user} event={event} key={event.id} serverActions={serverActions}/>
+                            <EventCard user={user} event={event} key={event.id} serverActions={serverActions}/>
                     ))}
                 </div>
       </div>
@@ -98,23 +93,6 @@ export default function DashboardContent({ user, logout, serverActions, events =
           >
             Zaproszenia
           </Button>
-
-      {/* {showEventCreator && (
-        <EventCreatorComponent
-          user={user}
-          onClose={() => setShowEventCreator(false)}
-          onSubmit={serverActions.handleCreateEventServerAction}
-        />
-      )}
-
-      {showJoinEventModal && (
-          <JoinEventModal
-              user={user}
-              open={showJoinEventModal}
-              onClose={() => setShowJoinEventModal(false)}
-              onJoinEvent={serverActions.handleJoinEventServerAction}
-          />
-      )} */}
 
 
       {showUpcomingEvents && (

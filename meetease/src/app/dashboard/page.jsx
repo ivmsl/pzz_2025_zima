@@ -10,51 +10,12 @@ import DashboardContent from "@/components/features/dashboard-content"
 import serverActions from "@/lib/serverActions"
 import DashboardNavbar from "@/components/features/dashboard-navbar"
 
-
-
-async function handleUpdateEventServerAction(eventId, eventData) {
-    "use server"
-    const { user } = await getAuthenticatedUser()
-    const event = await updateEvent(eventId, eventData, user.id)
-    console.log("Event updated:", event)
-    redirect("/dashboard")
-}
-
-async function handleDeleteEventServerAction(eventId) {
-    "use server"
-    const { user } = await getAuthenticatedUser()
-    await deleteEvent(eventId, user.id)
-    console.log("Event deleted:", eventId)
-    redirect("/dashboard")
-}
-
-async function handleLeaveEventServerAction(eventId) {
-    "use server"
-    const { user } = await getAuthenticatedUser()
-    await leaveEvent(eventId, user.id)
-    console.log("Left event:", eventId)
-    redirect("/dashboard")
-}
-
 export default async function DashboardPage() {
-    const { supabase, user, logout } = await getAuthenticatedUser()
+    const { user } = await getAuthenticatedUser()
     const events = await fetchEventsByUserId(user.id) || []
 
     console.log("Events:", events)
 
-    // Fetch user profile to get username
-    const { data: profile } = await supabase
-        .from("profiles")
-        .select("username, email")
-        .eq("id", user.id)
-        .maybeSingle()
-
-    const username = profile?.username ?? user.user_metadata?.username ?? user.email ?? "Użytkownik"
-    const userWithProfile = {
-        ...user,
-        username,
-        email: profile?.email ?? user.email ?? ""
-    }
 
     return (
         <>

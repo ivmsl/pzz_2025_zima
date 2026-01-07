@@ -93,7 +93,7 @@ export default function DashboardNavbar({ user, logout, serverActions }) {
           user={user}
           onClose={() => setShowEventCreator(false)}
           onSubmit={serverActions.handleCreateEventServerAction}
-          onEditSubmit={serverActions.handleUpdateEventServerAction}
+          userSearchFn={serverActions.handleSearchUserByUsername}
         />
       )}
 
