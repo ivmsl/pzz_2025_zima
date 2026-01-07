@@ -1,5 +1,9 @@
-import { createEvent, joinEventByCode, leaveEvent, updateEvent, deleteEvent } from "@/lib/eventService"
+
+import { createEvent, joinEventByCode, leaveEvent, updateEvent, deleteEvent, } from "@/lib/eventService"
+import { fetchPendingInvitations, acceptPendingInvitation, declinePendingInvitation } from "@/lib/userService"
+
 import { redirect } from "next/navigation"
+import { createClient } from "@/utils/supabase/server"
 
 async function handleCreateEventServerAction(eventData) {
     "use server"
@@ -28,6 +32,7 @@ async function handleLeaveEventServerAction(eventId, userId) {
     }
 }
 
+
 async function handleUpdateEventServerAction(eventId, eventData, userId) {
     "use server"
     const { success, error } = await updateEvent(eventId, eventData, userId)
@@ -49,11 +54,75 @@ async function handleDeleteEventServerAction(eventId) {
     }
 }
 
+async function handleFetchParticipatingEvents() {
+    "use server"
+    try {
+        const events = await fetchEventsByUserId()
+        return { success: true, events, error: null }
+    } catch (error) {
+        console.error("Error fetching participating events:", error)
+        return { success: false, events: [], error: error.message }
+    }
+}
+
+async function handleFetchPendingInvitations(userId) {
+    "use server"
+    try {
+        const invitations = await fetchPendingInvitations(userId)
+        return { success: true, invitations, error: null }
+    } catch (error) {
+        console.error("Error fetching invitations:", error)
+        return { success: false, invitations: [], error: error.message }
+    }
+}
+
+async function handleAcceptInvitation(inviteId, eventId) {
+    "use server"
+    try {
+        const { success, error } = await acceptPendingInvitation(inviteId, eventId)
+        if (error) {
+            return { success: false, error: error }
+        } else {
+            return { success: true, error: null }
+        }
+    } catch (error) {
+        console.error("Error accepting invitation:", error)
+        return { success: false, error: error.message }
+    }
+
+}
+
+async function handleDeclineInvitation(inviteId) {
+    "use server"
+    const supabase = await createClient()
+    
+    try {
+        const { error } = await supabase
+            .from("invites")
+            .update({ status: "declined" })
+            .eq("id", inviteId)
+        
+        if (error) {
+            console.error("Error declining invitation:", error)
+            return { success: false, error: error.message }
+        }
+        
+        return { success: true, error: null }
+    } catch (error) {
+        console.error("Error declining invitation:", error)
+        return { success: false, error: error.message }
+    }
+}
+
 const serverActions = {
     handleCreateEventServerAction,
     handleJoinEventServerAction,
     handleLeaveEventServerAction,
     handleUpdateEventServerAction, 
-    handleDeleteEventServerAction
+    handleDeleteEventServerAction,
+    handleFetchParticipatingEvents,
+    handleFetchPendingInvitations,
+    handleAcceptInvitation,
+    handleDeclineInvitation
 }
 export default serverActions
