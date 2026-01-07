@@ -45,7 +45,7 @@ const defaultAttendees = [
 // export default function EventDetailsModal({user, event = defaultEvent, attendees = defaultAttendees, serverActions}) {
 
 //     const [showEventCreator, setShowEventCreator] = useState(false)
-export default function EventDetailsModal({user, event = defaultEvent, attendees = defaultAttendees, handleEventUpdate, handleEventDelete, handleEventLeave}) {
+export default function EventDetailsModal({user, event = defaultEvent, attendees = defaultAttendees, serverActions}) {
     const [showEditForm, setShowEditForm] = useState(false)
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -60,6 +60,7 @@ export default function EventDetailsModal({user, event = defaultEvent, attendees
         }
     }
 
+
     const isCreator = user?.id === event?.creator_id
 
     const handleEditClick = () => {
@@ -68,8 +69,8 @@ export default function EventDetailsModal({user, event = defaultEvent, attendees
     }
 
     const handleEditSubmit = async (eventData) => {
-        if (handleEventUpdate) {
-            await handleEventUpdate(event.id, eventData)
+        if (serverActions.handleUpdateEventServerAction) {
+            const { success, error } = await serverActions.handleUpdateEventServerAction(event.id, eventData, user.id)
         }
         setShowEditForm(false)
     }
@@ -83,8 +84,8 @@ export default function EventDetailsModal({user, event = defaultEvent, attendees
     const handleDeleteConfirm = async (e) => {
         e?.preventDefault()
         e?.stopPropagation()
-        if (handleEventDelete) {
-            await handleEventDelete(event.id)
+        if (serverActions.handleDeleteEventServerAction) {
+            await serverActions.handleDeleteEventServerAction(event.id)
         }
         setShowDeleteConfirm(false)
         setIsDialogOpen(false)
@@ -97,8 +98,8 @@ export default function EventDetailsModal({user, event = defaultEvent, attendees
     }
 
     const handleLeaveClick = async () => {
-        if (handleEventLeave) {
-            await handleEventLeave(event.id)
+        if (serverActions.handleLeaveEventServerAction) {
+            await serverActions.handleLeaveEventServerAction(event.id, user.id)
         }
         setIsDialogOpen(false)
     }

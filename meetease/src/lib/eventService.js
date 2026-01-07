@@ -531,36 +531,36 @@ export async function deleteEvent(eventId, userId) {
  * @param {string} userId - The user ID leaving the event
  * @returns {Promise<void>}
  */
-export async function leaveEvent(eventId, userId) {
-    const supabase = await createClient()
+// export async function leaveEvent(eventId, userId) {
+//     const supabase = await createClient()
     
-    // Verify the user is not the creator
-    const { data: existingEvent, error: fetchError } = await supabase
-        .from("events")
-        .select("creator_id")
-        .eq("id", eventId)
-        .single()
+//     // Verify the user is not the creator
+//     const { data: existingEvent, error: fetchError } = await supabase
+//         .from("events")
+//         .select("creator_id")
+//         .eq("id", eventId)
+//         .single()
     
-    if (fetchError || !existingEvent) {
-        throw new Error("Event not found")
-    }
+//     if (fetchError || !existingEvent) {
+//         throw new Error("Event not found")
+//     }
     
-    if (existingEvent.creator_id === userId) {
-        throw new Error("Event creator cannot leave their own event. Please delete the event instead.")
-    }
+//     if (existingEvent.creator_id === userId) {
+//         throw new Error("Event creator cannot leave their own event. Please delete the event instead.")
+//     }
     
-    // Remove user from participants
-    const { error: leaveError } = await supabase
-        .from("users_events")
-        .delete()
-        .eq("event_id", eventId)
-        .eq("user_id", userId)
+//     // Remove user from participants
+//     const { error: leaveError } = await supabase
+//         .from("users_events")
+//         .delete()
+//         .eq("event_id", eventId)
+//         .eq("user_id", userId)
     
-    if (leaveError) {
-        console.error("Error leaving event:", leaveError)
-        throw new Error(leaveError?.message || "Failed to leave event")
-    }
-}
+//     if (leaveError) {
+//         console.error("Error leaving event:", leaveError)
+//         throw new Error(leaveError?.message || "Failed to leave event")
+//     }
+// }
 
 /**
  * Parse event time field into date and time strings

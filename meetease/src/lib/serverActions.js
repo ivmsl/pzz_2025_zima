@@ -1,4 +1,4 @@
-import { createEvent, joinEventByCode, leaveEvent } from "@/lib/eventService"
+import { createEvent, joinEventByCode, leaveEvent, updateEvent, deleteEvent } from "@/lib/eventService"
 import { redirect } from "next/navigation"
 
 async function handleCreateEventServerAction(eventData) {
@@ -28,9 +28,32 @@ async function handleLeaveEventServerAction(eventId, userId) {
     }
 }
 
+async function handleUpdateEventServerAction(eventId, eventData, userId) {
+    "use server"
+    const { success, error } = await updateEvent(eventId, eventData, userId)
+    if (error) {
+       return { success: false, error: error }
+    } else {
+        return { success: true, error: null }
+    }
+}
+
+
+async function handleDeleteEventServerAction(eventId) {
+    "use server"
+    const { success, error } = await deleteEvent(eventId)
+    if (error) {
+       return { success: false, error: error }
+    } else {
+        return { success: true, error: null }
+    }
+}
+
 const serverActions = {
     handleCreateEventServerAction,
     handleJoinEventServerAction,
-    handleLeaveEventServerAction
+    handleLeaveEventServerAction,
+    handleUpdateEventServerAction, 
+    handleDeleteEventServerAction
 }
 export default serverActions

@@ -456,6 +456,7 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, event =
             <Button
               type="submit"
               className="bg-blue-600 hover:bg-blue-700 text-white"
+              onClick={() => onSubmit(formData)}
             >
               {isEditing ? "Zapisz zmiany" : "Utwórz"}
             </Button>

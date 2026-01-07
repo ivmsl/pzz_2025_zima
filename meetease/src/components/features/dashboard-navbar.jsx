@@ -4,6 +4,9 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import EventCreatorComponent from "./event-creator"
 import { MoreVertical } from "lucide-react"
+import Link from "next/link"
+import JoinEventModal from "@/components/features/joinEventModal"
+
 
 export default function DashboardNavbar({ user, logout, serverActions }) {
   const [showEventCreator, setShowEventCreator] = useState(false)
@@ -90,6 +93,7 @@ export default function DashboardNavbar({ user, logout, serverActions }) {
           user={user}
           onClose={() => setShowEventCreator(false)}
           onSubmit={serverActions.handleCreateEventServerAction}
+          onEditSubmit={serverActions.handleUpdateEventServerAction}
         />
       )}
 
