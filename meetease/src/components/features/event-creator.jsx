@@ -5,25 +5,59 @@ import { Button } from "@/components/ui/button"
 import { Calendar, Clock, MapPin, Info, X, ChevronDown } from "lucide-react"
 import TimePicker from "./time-picker"
 
-export default function EventCreatorComponent({ user, onClose, onSubmit, eventData = null, participants = [] }) {
+export default function EventCreatorComponent({ user, onClose, onSubmit, event = null, isEditing = false, participants = [] }) {
+  // Convert date from YYYY-MM-DD to DD-MM-YYYY format
+  const formatDateForInput = (dateString) => {
+    if (!dateString) return ""
+    const [year, month, day] = dateString.split('-')
+    return `${day}-${month}-${year}`
+  }
+
   const [formData, setFormData] = useState({
-    name: "",
-    date: "",
-    startTime: "",
-    endTime: "",
-    location: "",
-    description: "",
+    name: event?.name || "",
+    date: event?.date ? formatDateForInput(event.date) : "",
+    startTime: event?.time_start || "",
+    endTime: event?.time_end || "",
+    location: event?.location || "",
+    description: event?.description || "",
     creator_id: user.id,
-    voting: false,
-    participants: []
+    voting: event?.time_poll_enabled || false,
+    participants: event?.attendees?.map(a => a.id) || []
   })
   const [showStartTimePicker, setShowStartTimePicker] = useState(false)
   const [showEndTimePicker, setShowEndTimePicker] = useState(false)
+  const [errors, setErrors] = useState({})
   const startTimeRef = useRef(null)
   const endTimeRef = useRef(null)
 
   const handleSubmit = (e) => {
     e.preventDefault()
+    
+    // Reset errors
+    const newErrors = {}
+    
+    // Validate required fields
+    if (!formData.name.trim()) {
+      newErrors.name = "Nazwa wydarzenia jest wymagana"
+    }
+    if (!formData.date || !validateDate(formData.date)) {
+      newErrors.date = "Data jest wymagana i musi być prawidłowa"
+    }
+    if (!formData.startTime.trim()) {
+      newErrors.startTime = "Godzina startowa jest wymagana"
+    }
+    if (!formData.endTime.trim()) {
+      newErrors.endTime = "Godzina końcowa jest wymagana"
+    }
+    
+    // If there are errors, set them and prevent submission
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      return
+    }
+    
+    // Clear errors and submit
+    setErrors({})
     onSubmit?.(formData)
     onClose?.()
   }
@@ -164,7 +198,9 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, eventDa
       <div className="bg-white rounded-2xl shadow-xl w-[95vw] max-w-7xl h-[85vh] max-h-[85vh] overflow-x-visible relative flex flex-col">
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b border-gray-200 flex-shrink-0">
-          <h2 className="text-2xl font-semibold text-gray-900">Stwórz nowe Wydarzenie</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">
+            {isEditing ? "Edytuj Wydarzenie" : "Stwórz nowe Wydarzenie"}
+          </h2>
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700 transition-colors"
@@ -179,89 +215,139 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, eventDa
             {/* Left Section */}
             <div className="flex-1 pb-4">
               {/* Event Name */}
-              <div className="flex items-center gap-3" style={{ marginBottom: '1rem', marginTop: '1.2rem' }}>
-                <Calendar className="w-5 h-5 text-gray-500 flex-shrink-0" />
-                <input
-                  type="text"
-                  placeholder="Nazwa Wydarzenia"
-                  value={formData.name}
-                  onChange={(e) => handleChange("name", e.target.value)}
-                  className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
+              <div className="flex items-start gap-3" style={{ marginBottom: '1rem', marginTop: '1.2rem' }}>
+                <Calendar className="w-5 h-5 text-gray-500 flex-shrink-0 mt-2" />
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    placeholder="Nazwa Wydarzenia"
+                    value={formData.name}
+                    onChange={(e) => {
+                      handleChange("name", e.target.value)
+                      if (errors.name) {
+                        setErrors(prev => ({ ...prev, name: "" }))
+                      }
+                    }}
+                    className={`flex-1 w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 ${
+                      errors.name ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"
+                    }`}
+                    required
+                  />
+                  {errors.name && (
+                    <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+                  )}
+                </div>
               </div>
 
               {/* Date */}
-              <div className="flex items-center gap-3" style={{ marginBottom: '1rem' }}>
-                <Calendar className="w-5 h-5 text-gray-500 flex-shrink-0" />
-                <input
-                  type="text"
-                  placeholder="Data, np: 30-05-2025"
-                  value={formData.date}
-                  onChange={handleDateChange}
-                  onBlur={handleDateBlur}
-                  onKeyDown={handleDateKeyDown}
-                  maxLength={10}
-                  className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
+              <div className="flex items-start gap-3" style={{ marginBottom: '1rem' }}>
+                <Calendar className="w-5 h-5 text-gray-500 flex-shrink-0 mt-2" />
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    placeholder="Data, np: 30-05-2025"
+                    value={formData.date}
+                    onChange={(e) => {
+                      handleDateChange(e)
+                      if (errors.date) {
+                        setErrors(prev => ({ ...prev, date: "" }))
+                      }
+                    }}
+                    onBlur={handleDateBlur}
+                    onKeyDown={handleDateKeyDown}
+                    maxLength={10}
+                    className={`flex-1 w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 ${
+                      errors.date ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"
+                    }`}
+                    required
+                  />
+                  {errors.date && (
+                    <p className="text-red-500 text-sm mt-1">{errors.date}</p>
+                  )}
+                </div>
               </div>
 
               {/* Start Time and End Time */}
               <div className="flex gap-4 overflow-visible" style={{ marginBottom: '1rem' }}>
-                <div className="flex items-center gap-3 flex-1 relative overflow-visible" ref={startTimeRef}>
-                  <Clock className="w-5 h-5 text-gray-500 flex-shrink-0" />
-                  <input
-                    type="text"
-                    placeholder="Godzina startowa"
-                    value={formData.startTime}
-                    readOnly
-                    onClick={() => {
-                      setShowStartTimePicker(true)
-                      setShowEndTimePicker(false)
-                    }}
-                    className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                    required
-                  />
-                  {showStartTimePicker && (
-                    <div className="absolute top-full left-0 mt-2 z-[100] overflow-visible">
-                      <TimePicker
-                        value={formData.startTime}
-                        onChange={(time) => {
-                          handleChange("startTime", time)
-                          setShowStartTimePicker(false)
-                        }}
-                        onClose={() => setShowStartTimePicker(false)}
-                      />
-                    </div>
-                  )}
+                <div className="flex items-start gap-3 flex-1 relative overflow-visible" ref={startTimeRef}>
+                  <Clock className="w-5 h-5 text-gray-500 flex-shrink-0 mt-2" />
+                  <div className="flex-1 relative">
+                    <input
+                      type="text"
+                      placeholder="Godzina startowa"
+                      value={formData.startTime}
+                      readOnly
+                      onClick={() => {
+                        setShowStartTimePicker(true)
+                        setShowEndTimePicker(false)
+                        if (errors.startTime) {
+                          setErrors(prev => ({ ...prev, startTime: "" }))
+                        }
+                      }}
+                      className={`flex-1 w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 cursor-pointer ${
+                        errors.startTime ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"
+                      }`}
+                      required
+                    />
+                    {errors.startTime && (
+                      <p className="text-red-500 text-sm mt-1">{errors.startTime}</p>
+                    )}
+                    {showStartTimePicker && (
+                      <div className="absolute top-full left-0 mt-2 z-[100] overflow-visible">
+                        <TimePicker
+                          value={formData.startTime}
+                          onChange={(time) => {
+                            handleChange("startTime", time)
+                            setShowStartTimePicker(false)
+                            if (errors.startTime) {
+                              setErrors(prev => ({ ...prev, startTime: "" }))
+                            }
+                          }}
+                          onClose={() => setShowStartTimePicker(false)}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 flex-1 relative overflow-visible" ref={endTimeRef}>
-                  <Clock className="w-5 h-5 text-gray-500 flex-shrink-0" />
-                  <input
-                    type="text"
-                    placeholder="Godzina końcowa"
-                    value={formData.endTime}
-                    readOnly
-                    onClick={() => {
-                      setShowEndTimePicker(true)
-                      setShowStartTimePicker(false)
-                    }}
-                    className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                    required
-                  />
-                  {showEndTimePicker && (
-                    <div className="absolute top-full left-0 mt-2 z-[100] overflow-visible">
-                      <TimePicker
-                        value={formData.endTime}
-                        onChange={(time) => {
-                          handleChange("endTime", time)
-                          setShowEndTimePicker(false)
-                        }}
-                        onClose={() => setShowEndTimePicker(false)}
-                      />
-                    </div>
-                  )}
+                <div className="flex items-start gap-3 flex-1 relative overflow-visible" ref={endTimeRef}>
+                  <Clock className="w-5 h-5 text-gray-500 flex-shrink-0 mt-2" />
+                  <div className="flex-1 relative">
+                    <input
+                      type="text"
+                      placeholder="Godzina końcowa"
+                      value={formData.endTime}
+                      readOnly
+                      onClick={() => {
+                        setShowEndTimePicker(true)
+                        setShowStartTimePicker(false)
+                        if (errors.endTime) {
+                          setErrors(prev => ({ ...prev, endTime: "" }))
+                        }
+                      }}
+                      className={`flex-1 w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 cursor-pointer ${
+                        errors.endTime ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"
+                      }`}
+                      required
+                    />
+                    {errors.endTime && (
+                      <p className="text-red-500 text-sm mt-1">{errors.endTime}</p>
+                    )}
+                    {showEndTimePicker && (
+                      <div className="absolute top-full left-0 mt-2 z-[100] overflow-visible">
+                        <TimePicker
+                          value={formData.endTime}
+                          onChange={(time) => {
+                            handleChange("endTime", time)
+                            setShowEndTimePicker(false)
+                            if (errors.endTime) {
+                              setErrors(prev => ({ ...prev, endTime: "" }))
+                            }
+                          }}
+                          onClose={() => setShowEndTimePicker(false)}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -371,7 +457,7 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, eventDa
               type="submit"
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
-              Utwórz
+              {isEditing ? "Zapisz zmiany" : "Utwórz"}
             </Button>
           </div>
         </form>

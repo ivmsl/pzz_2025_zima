@@ -15,7 +15,7 @@ export default function DashboardContent({ user, logout, serverActions, events =
 
   return (
     <div className="p-8">
-      <div className="flex justify-between items-center mb-6">
+      {/* <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-4xl font-bold mb-4">Dashboard</h1>
           <p className="mb-4">Zalogowany jako: {user.username}</p>
@@ -42,7 +42,7 @@ export default function DashboardContent({ user, logout, serverActions, events =
 
       <form action={logout}>
         <Button type="submit">Wyloguj</Button>
-      </form>
+      </form> */}
 
       <div className="flex flex-col gap-4 p-8">     
                 <div className="flex flex-col py-4 gap-4 justify-center w-1/2">
@@ -50,9 +50,18 @@ export default function DashboardContent({ user, logout, serverActions, events =
                             <EventDetailsModal user={user} event={event} key={event.id} serverActions={serverActions}/>
                     ))}
                 </div>
-        </div>
+      </div>
 
-      {showEventCreator && (
+      <div className="flex-1 flex justify-end items-start pt-4 pr-8">
+        <Button
+            variant="outline"
+            className="rounded-lg px-6 py-3 text-base"
+        >
+            Lista Znajomych
+        </Button>
+      </div>
+
+      {/* {showEventCreator && (
         <EventCreatorComponent
           user={user}
           onClose={() => setShowEventCreator(false)}
@@ -67,7 +76,7 @@ export default function DashboardContent({ user, logout, serverActions, events =
               onClose={() => setShowJoinEventModal(false)}
               onJoinEvent={serverActions.handleJoinEventServerAction}
           />
-      )}
+      )} */}
     </div>
   )
 }

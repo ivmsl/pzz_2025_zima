@@ -397,6 +397,172 @@ export async function createEvent(eventData, creatorId) {
 }
 
 /**
+ * Update an existing event
+ * @param {string} eventId - The event ID to update
+ * @param {Object} eventData - The updated event data
+ * @param {string} userId - The user ID (must be the creator)
+ * @returns {Promise<Object>} - Updated event data
+ */
+export async function updateEvent(eventId, eventData, userId) {
+    const supabase = await createClient()
+    
+    // First verify the user is the creator
+    const { data: existingEvent, error: fetchError } = await supabase
+        .from("events")
+        .select("creator_id")
+        .eq("id", eventId)
+        .single()
+    
+    if (fetchError || !existingEvent) {
+        throw new Error("Event not found")
+    }
+    
+    if (existingEvent.creator_id !== userId) {
+        throw new Error("Only the event creator can update this event")
+    }
+    
+    // Prepare event data for update
+    const updatedEvent = {
+        name: eventData.name,
+        description: eventData.description || null,
+        time_start: eventData.startTime,
+        time_end: eventData.endTime,
+        date: eventData.date.split('-').reverse().join('-'), // DD-MM-YYYY to YYYY-MM-DD
+        location: eventData.location || null,
+        time_poll_enabled: eventData.voting || false,
+    }
+    
+    // Update the event
+    const { data: updated, error: updateError } = await supabase
+        .from("events")
+        .update(updatedEvent)
+        .eq("id", eventId)
+        .select()
+        .single()
+    
+    if (updateError || !updated) {
+        console.error("Error updating event:", updateError)
+        throw new Error(updateError?.message || "Failed to update event")
+    }
+    
+    // Handle participants update if provided
+    if (eventData.participants !== undefined) {
+        // Remove existing participants
+        const { error: deleteError } = await supabase
+            .from("users_events")
+            .delete()
+            .eq("event_id", eventId)
+        
+        if (deleteError) {
+            console.error("Error removing existing participants:", deleteError)
+        }
+        
+        // Add new participants if any
+        if (eventData.participants && eventData.participants.length > 0) {
+            const participantsData = eventData.participants.map((participantId) => ({
+                event_id: eventId,
+                user_id: participantId,
+            }))
+            
+            const { error: participantsError } = await supabase
+                .from("users_events")
+                .insert(participantsData)
+            
+            if (participantsError) {
+                console.error("Error adding participants:", participantsError)
+                // Don't throw here - event was updated successfully, just log the error
+            }
+        }
+    }
+    
+    return updated
+}
+
+/**
+ * Delete an event (only creator can delete)
+ * @param {string} eventId - The event ID to delete
+ * @param {string} userId - The user ID (must be the creator)
+ * @returns {Promise<void>}
+ */
+export async function deleteEvent(eventId, userId) {
+    const supabase = await createClient()
+    
+    // First verify the user is the creator
+    const { data: existingEvent, error: fetchError } = await supabase
+        .from("events")
+        .select("creator_id")
+        .eq("id", eventId)
+        .single()
+    
+    if (fetchError || !existingEvent) {
+        throw new Error("Event not found")
+    }
+    
+    if (existingEvent.creator_id !== userId) {
+        throw new Error("Only the event creator can delete this event")
+    }
+    
+    // Delete all participants first
+    const { error: participantsError } = await supabase
+        .from("users_events")
+        .delete()
+        .eq("event_id", eventId)
+    
+    if (participantsError) {
+        console.error("Error removing participants:", participantsError)
+        // Continue with event deletion even if participant removal fails
+    }
+    
+    // Delete the event
+    const { error: deleteError } = await supabase
+        .from("events")
+        .delete()
+        .eq("id", eventId)
+    
+    if (deleteError) {
+        console.error("Error deleting event:", deleteError)
+        throw new Error(deleteError?.message || "Failed to delete event")
+    }
+}
+
+/**
+ * Leave an event (remove user from participants)
+ * @param {string} eventId - The event ID
+ * @param {string} userId - The user ID leaving the event
+ * @returns {Promise<void>}
+ */
+export async function leaveEvent(eventId, userId) {
+    const supabase = await createClient()
+    
+    // Verify the user is not the creator
+    const { data: existingEvent, error: fetchError } = await supabase
+        .from("events")
+        .select("creator_id")
+        .eq("id", eventId)
+        .single()
+    
+    if (fetchError || !existingEvent) {
+        throw new Error("Event not found")
+    }
+    
+    if (existingEvent.creator_id === userId) {
+        throw new Error("Event creator cannot leave their own event. Please delete the event instead.")
+    }
+    
+    // Remove user from participants
+    const { error: leaveError } = await supabase
+        .from("users_events")
+        .delete()
+        .eq("event_id", eventId)
+        .eq("user_id", userId)
+    
+    if (leaveError) {
+        console.error("Error leaving event:", leaveError)
+        throw new Error(leaveError?.message || "Failed to leave event")
+    }
+}
+
+/**
  * Parse event time field into date and time strings
  * @param {Object} event - Event object with time and created_at fields
  * @returns {Object} - Object with eventDate and eventTime strings
