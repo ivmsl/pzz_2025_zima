@@ -1,11 +1,23 @@
 
 import { createEvent, joinEventByCode, leaveEvent, updateEvent, deleteEvent, fetchEventsByUserId} from "@/lib/eventService"
 import { fetchPendingInvitations, acceptPendingInvitation, declinePendingInvitation, searchUsersByUsername } from "@/lib/userService"
+import { registerVote } from "@/lib/voteService"
 
 
 async function handleCreateEventServerAction(eventData) {
     "use server"
-    const event = await createEvent(eventData)
+    console.log("Event data:", eventData)
+    const { voteObjects, ...eventDataToHandle } = eventData
+    const event = await createEvent(eventDataToHandle)
+
+    if (event && event.id) {
+        await registerVote(voteObjects, event.id)
+        .catch(error => {
+            console.error("Error registering vote:", error)
+            return { success: false, error: error.message }
+        })
+    }
+
     console.log("Event created:", event)
     // redirect("/dashboard")
 }
@@ -108,6 +120,7 @@ async function handleDeclineInvitation(inviteId) {
     }
 }
 
+
 async function handleSearchUserByUsername(query) {
     "use server"
     return await searchUsersByUsername(query)
@@ -121,6 +134,220 @@ async function handleSearchUserByUsername(query) {
         })
 }
 
+
+async function handleCastGeneralVote(voteId, optionId, userId) {
+    "use server"
+    const supabase = await createClient()
+
+    try {
+        // Ensure option belongs to vote
+        const { data: option } = await supabase
+            .from("vote_options")
+            .select("id, vote_id")
+            .eq("id", optionId)
+            .maybeSingle()
+
+        if (!option || option.vote_id !== voteId) {
+            return { success: false, error: "Invalid option" }
+        }
+
+        const { data: vote } = await supabase
+            .from("votes")
+            .select("id, event_id, deadline")
+            .eq("id", voteId)
+            .single()
+
+        if (!vote) {
+            return { success: false, error: "Vote not found" }
+        }
+
+        // Closed check (deadline in past => closed)
+        if (vote.deadline && new Date(vote.deadline).getTime() <= Date.now()) {
+            return { success: false, error: "Voting is closed" }
+        }
+
+        // Access check: creator or participant
+        const { data: event } = await supabase
+            .from("events")
+            .select("creator_id")
+            .eq("id", vote.event_id)
+            .single()
+
+        if (!event) {
+            return { success: false, error: "Event not found" }
+        }
+
+        if (event.creator_id !== userId) {
+            const { data: membership } = await supabase
+                .from("users_events")
+                .select("user_id")
+                .eq("user_id", userId)
+                .eq("event_id", vote.event_id)
+                .maybeSingle()
+
+            if (!membership) {
+                return { success: false, error: "No access" }
+            }
+        }
+
+        // Delete previous vote by this user for this vote (any option of this vote)
+        const { data: allOptions } = await supabase
+            .from("vote_options")
+            .select("id")
+            .eq("vote_id", voteId)
+
+        const allOptionIds = (allOptions || []).map((o) => o.id)
+        if (allOptionIds.length > 0) {
+            await supabase
+                .from("user_votes")
+                .delete()
+                .eq("user_id", userId)
+                .in("vote_option_id", allOptionIds)
+        }
+
+        const { error: insertError } = await supabase
+            .from("user_votes")
+            .insert({ user_id: userId, vote_option_id: optionId })
+
+        if (insertError) {
+            console.error("Error casting vote:", insertError)
+            return { success: false, error: insertError.message }
+        }
+
+        return { success: true, error: null }
+    } catch (error) {
+        console.error("Error casting vote:", error)
+        return { success: false, error: error.message }
+    }
+}
+
+async function handleCloseGeneralVote(voteId, userId) {
+    "use server"
+    const supabase = await createClient()
+
+    try {
+        const { data: vote } = await supabase
+            .from("votes")
+            .select("id, event_id, deadline, type")
+            .eq("id", voteId)
+            .single()
+
+        if (!vote) return { success: false, error: "Vote not found" }
+
+        const { data: event } = await supabase
+            .from("events")
+            .select("creator_id")
+            .eq("id", vote.event_id)
+            .single()
+
+        if (!event || event.creator_id !== userId) {
+            return { success: false, error: "Only creator can close voting" }
+        }
+
+        const closeAt = new Date().toISOString()
+        const { error } = await supabase
+            .from("votes")
+            .update({ deadline: closeAt })
+            .eq("id", voteId)
+
+        if (error) return { success: false, error: error.message }
+
+        // Bonus: po zamknięciu głosowań specjalnych ustaw zwycięską opcję w evencie
+        if (vote.type === "location" || vote.type === "time") {
+            const { data: options } = await supabase
+                .from("vote_options")
+                .select("id, option_text")
+                .eq("vote_id", voteId)
+
+            const optionIds = (options || []).map((o) => o.id)
+            const { data: userVotes } = await supabase
+                .from("user_votes")
+                .select("vote_option_id")
+                .in("vote_option_id", optionIds.length ? optionIds : ["00000000-0000-0000-0000-000000000000"])
+
+            const counts = {}
+            for (const uv of userVotes || []) {
+                counts[uv.vote_option_id] = (counts[uv.vote_option_id] || 0) + 1
+            }
+
+            let winner = null
+            let winnerCount = -1
+            for (const opt of options || []) {
+                const c = counts[opt.id] || 0
+                if (c > winnerCount) {
+                    winner = opt
+                    winnerCount = c
+                }
+            }
+
+            if (winner?.option_text) {
+                if (vote.type === "location") {
+                    await supabase
+                        .from("events")
+                        .update({ location: winner.option_text, location_poll_enabled: false })
+                        .eq("id", vote.event_id)
+                } else if (vote.type === "time") {
+                    // expected: YYYY-MM-DD|HH:MM|HH:MM
+                    const [date, start, end] = String(winner.option_text).split("|")
+                    await supabase
+                        .from("events")
+                        .update({ date: date || null, time_start: start || null, time_end: end || null, time_poll_enabled: false })
+                        .eq("id", vote.event_id)
+                }
+            }
+        }
+
+        return { success: true, error: null }
+    } catch (error) {
+        console.error("Error closing vote:", error)
+        return { success: false, error: error.message }
+    }
+}
+
+async function handleDeleteGeneralVote(voteId, userId) {
+    "use server"
+    const supabase = await createClient()
+
+    try {
+        const { data: vote } = await supabase
+            .from("votes")
+            .select("id, event_id")
+            .eq("id", voteId)
+            .single()
+
+        if (!vote) return { success: false, error: "Vote not found" }
+
+        const { data: event } = await supabase
+            .from("events")
+            .select("creator_id")
+            .eq("id", vote.event_id)
+            .single()
+
+        if (!event || event.creator_id !== userId) {
+            return { success: false, error: "Only creator can delete voting" }
+        }
+
+        const { data: options } = await supabase
+            .from("vote_options")
+            .select("id")
+            .eq("vote_id", voteId)
+
+        const optionIds = (options || []).map((o) => o.id)
+        if (optionIds.length > 0) {
+            await supabase.from("user_votes").delete().in("vote_option_id", optionIds)
+        }
+
+        await supabase.from("vote_options").delete().eq("vote_id", voteId)
+        await supabase.from("votes").delete().eq("id", voteId)
+
+        return { success: true, error: null }
+    } catch (error) {
+        console.error("Error deleting vote:", error)
+        return { success: false, error: error.message }
+    }
+
+}
+
 const serverActions = {
     handleCreateEventServerAction,
     handleJoinEventServerAction,
@@ -131,6 +358,10 @@ const serverActions = {
     handleFetchPendingInvitations,
     handleAcceptInvitation,
     handleDeclineInvitation,
-    handleSearchUserByUsername
+    handleSearchUserByUsername,
+    handleCastGeneralVote,
+    handleCloseGeneralVote,
+    handleDeleteGeneralVote
+
 }
 export default serverActions

@@ -2,6 +2,7 @@ import { createClient } from "@/utils/supabase/server"
 import { notFound } from "next/navigation"
 import { getAuthenticatedUser } from "@/utils/auth"
 import { cacnelPendingInvitation } from "./userService"
+import { fetchEventVotes } from "./voteService"
 
 /**
  * Check if user has access to an event
@@ -163,6 +164,7 @@ export async function fetchEventsByUserId(userId) {
         .from("events")
         .select("*, event_codes( code )")
         .eq("creator_id", user.id)
+        .order("date", { ascending: false })
 
     if (eventsCreatedByUserError || !eventsCreatedByUser) {
         console.log("Error:", eventsCreatedByUserError)
@@ -200,7 +202,7 @@ export async function fetchEventsByUserId(userId) {
             .from("events")
             .select("*")
             .in("id", eventsUserIsAttendingArray)
-            .order("date", { ascending: true })
+            .order("date", { ascending: false })
 
         if (eventsUserIsAttendingError || !eventsUserIsAttendingData) {
             console.log("Error:", eventsUserIsAttendingError)
@@ -239,8 +241,11 @@ export async function fetchEventsByUserId(userId) {
     let totalEventsWithAttendees = []
     for (const event of totalEvents) {
         const attendees = await fetchEventAttendees(event.id, event.creator_id)
-        totalEventsWithAttendees.push({ ...event, attendees })
+        const voteObjects = await fetchEventVotes(event.id)
+
+        totalEventsWithAttendees.push({ ...event, attendees, voteObjects })
     }
+
 
     return totalEventsWithAttendees
 }
@@ -336,18 +341,16 @@ export async function createEvent(eventData, creatorId) {
     //         eventTimestamp = eventDate.toISOString()
     //     }
     // }
-    
-    // Prepare event data for insertion
     const newEvent = {
         name: eventData.name,
         description: eventData.description || null,
         creator_id: eventData.creator_id,
-        time_start: eventData.startTime,
-        time_end: eventData.endTime,
-        date: eventData.date.split('-').reverse().join('-'), //DD-MM-YYYY to YYYY-MM-DD 
+        time_start: eventData.startTime || null,
+        time_end: eventData.endTime || null,
+        date: eventData.date || null,
         location: eventData.location || null,
-        time_poll_enabled: eventData.voting || false,
-        location_poll_enabled: false, // Default to false, can be set separately if needed
+        time_poll_enabled: eventData.time_poll_enabled || false,
+        location_poll_enabled: eventData.location_poll_enabled || false,
     }
     
     // Insert the event

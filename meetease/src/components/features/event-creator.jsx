@@ -2,10 +2,12 @@
 
 import { useState, useRef, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { Calendar, Clock, MapPin, Info, X, ChevronDown } from "lucide-react"
-import TimePicker from "./time-picker"
-
+import { Checkbox } from "@/components/ui/checkbox"
+import { Calendar, Clock, MapPin, Info, X, ChevronDown, Plus, Trash2 } from "lucide-react"
+import TimePicker from "@/components/ui/time-picker"
+import { validateDateFromDMY } from "@/lib/timeUtils"
 import SearchUserComponent from "@/components/users/searcUserComponent"
+import GeneralVote from "@/components/votes/generalVote"
 // import serverActions from "@/lib/serverActions"
 
 export default function EventCreatorComponent({ user, onClose, onSubmit, userSearchFn, event = null, isEditing = false, participants = [] }) {
@@ -27,55 +29,127 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, userSea
     creator_id: user.id,
     voting: event?.time_poll_enabled || false,
     participants: event?.attendees || [],
-    invitees: event?.invitees || []
+    invitees: event?.invitees || [],
+    voteObjects: event?.vote_objects || []
   })
 
-  const [showStartTimePicker, setShowStartTimePicker] = useState(false)
-  const [showEndTimePicker, setShowEndTimePicker] = useState(false)
-  const [errors, setErrors] = useState({})
-  // const [participants, setParticipants] = useState([])
-  
-  // const [searchResults, setSearchResults] = useState([])
-  // const [allUsers, setAllUsers] = useState([])
-  // const [showParticipantDropdown, setShowParticipantDropdown] = useState(false)
-  // const [isSearching, setIsSearching] = useState(false)
-  // const [isLoadingUsers, setIsLoadingUsers] = useState(false)
+
+  const [errors, setErrors] = useState({
+    name: "",
+    date: "",
+    startTime: "",
+    endTime: "",
+    location: "",
+    timeVote: "",
+    locationVote: "", 
+    votes: ""
+  })
+
+  const [voteNum, setVoteNum] = useState(0)
+  const [doTimeVote, setDoTimeVote] = useState(event?.time_poll_enabled ? true : false || false)
+  const [doLocationVote, setDoLocationVote] = useState(event?.location_poll_enabled ? true : false || false)
+
 
   const startTimeRef = useRef(null)
   const endTimeRef = useRef(null)
-  // const participantSearchRef = useRef(null)
+
+  //VOTES REFS
+  const generalVoteRef = useRef([])
+  const timeVoteRef = useRef(null)
+  const locationVoteRef = useRef(null)
 
   const handleSubmit = (e) => {
     e.preventDefault()
+
     // Reset errors
     const newErrors = {}
     
     console.log("submitting formData", formData);
 
+    // console.log("generalVoteRef: ", generalVoteRef)
+    // console.log("generalVoteRef.current[0]: ", generalVoteRef.current[0]?.returnVoteDescriptor() || {})
+    // console.log("generalVoteRef.current[1]: ", generalVoteRef.current[1]?.returnVoteDescriptor() || {})
+    // console.log("generalVoteRef.current[0].checkValidity(): ", generalVoteRef.current[0]?.checkValidity() || false)
+    // console.log("generalVoteRef.current[1].checkValidity(): ", generalVoteRef.current[1]?.checkValidity() || false)
+
     // Validate required fields
     if (!formData.name.trim()) {
       newErrors.name = "Nazwa wydarzenia jest wymagana"
     }
-    if (!formData.date || !validateDate(formData.date)) {
-      newErrors.date = "Data jest wymagana i musi być prawidłowa"
-    }
-    if (!formData.startTime.trim()) {
-      newErrors.startTime = "Godzina startowa jest wymagana"
-    }
-    if (!formData.endTime.trim()) {
-      newErrors.endTime = "Godzina końcowa jest wymagana"
+
+    if (!doTimeVote) {
+      if (!formData.date) {
+        newErrors.date = "Data jest wymagana i musi być prawidłowa"
+      }
+      if (!formData.startTime.trim()) {
+        newErrors.startTime = "Godzina startowa jest wymagana"
+      }
+      if (!formData.endTime.trim()) {
+        newErrors.endTime = "Godzina końcowa jest wymagana"
+      }
+    } else {
+      if (!timeVoteRef.current?.checkValidity()) {
+        newErrors.timeVote = "Głosowanie nad czasem jest nieprawidłowe"
+      }
+      if (!timeVoteRef.current) {
+        newErrors.timeVote = "Wystąpił błąd podczas tworzenia głosowania nad czasem"
+      }
     }
     
-    // If there are errors, set them and prevent submission
+    if (!doLocationVote) {
+      if (!formData.location.trim()) {
+        newErrors.location = "Lokalizacja jest wymagana"
+      }
+    } else {
+      if (!locationVoteRef.current?.checkValidity()) {
+        newErrors.locationVote = "Głosowanie nad miejscem jest nieprawidłowe"
+      }
+      if (!locationVoteRef.current) {
+        newErrors.locationVote = "Wystąpił błąd podczas tworzenia głosowania nad miejscem"
+      }
+    }
+
+    for (const vote of generalVoteRef.current) {
+      if (vote && !vote.checkValidity()) {
+        newErrors.votes = "Głosowanie jest nieprawidłowe"
+      }
+    }
+
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors)
       return
     }
-    
+
+    const strTime = !doTimeVote ? formData.startTime : null
+    const strDate = !doTimeVote ? formData.date : null
+    const strEndTime = !doTimeVote ? formData.endTime : null
+    const strLocation = !doLocationVote ? formData.location : null
+
+    console.log("strTime is : ", strTime)
+    console.log("strDate is : ", strDate)
+    console.log("strEndTime is : ", strEndTime)
+    console.log("strLocation is : ", strLocation)
+
+    let formToSubmit = {
+      ...formData,
+      startTime: strTime,
+      date: strDate,
+      endTime: strEndTime,
+      location: strLocation,
+      time_poll_enabled: doTimeVote,
+      location_poll_enabled: doLocationVote,
+      voteObjects: {
+        "time": doTimeVote ? timeVoteRef.current?.returnVoteDescriptor() || null : null,
+        "location": doLocationVote ? locationVoteRef.current?.returnVoteDescriptor() || null : null,
+        "general": voteNum > 0 ? generalVoteRef.current.map(vote => vote.returnVoteDescriptor()) || [] : [] 
+      }
+    }
+    console.log("formToSubmit is : ", formToSubmit)
     // Clear errors and submit
     setErrors({})
-    onSubmit?.(formData)
-    onClose?.()
+    onSubmit?.(formToSubmit)
+    // onClose?.()
   }
 
   const handleChange = (field, value) => {
@@ -90,123 +164,8 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, userSea
     if (participants && participants.length > 0) {
       handleChange("participants", participants)
     }
+    console.log("event is : ", event)
   }, []) // Only run once on mount
-
-  const validateDate = (dateString) => {
-    if (!dateString || dateString.length !== 10) {
-      return false
-    }
-    
-    const [day, month, year] = dateString.split('-').map(Number)
-    
-    // Check if date is valid
-    const date = new Date(year, month - 1, day)
-    const isValidDate = 
-      date.getFullYear() === year &&
-      date.getMonth() === month - 1 &&
-      date.getDate() === day &&
-      month >= 1 && month <= 12 &&
-      day >= 1 && day <= 31 &&
-      year >= 1000 && year <= 9999
-    
-    if (!isValidDate) {
-      return false
-    }
-    
-    // Check if date is in the past
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    date.setHours(0, 0, 0, 0)
-    
-    return date >= today
-  }
-
-  const handleDateChange = (e) => {
-    const input = e.target.value
-    
-    // Allow backspace/delete to clear
-    if (input === '') {
-      handleChange("date", '')
-      return
-    }
-    
-    // Remove all non-digit characters
-    const digitsOnly = input.replace(/\D/g, '')
-    
-    // Format as DD-MM-YYYY
-    let formatted = digitsOnly
-    
-    if (digitsOnly.length > 2) {
-      formatted = digitsOnly.slice(0, 2) + '-' + digitsOnly.slice(2)
-    }
-    if (digitsOnly.length > 4) {
-      formatted = digitsOnly.slice(0, 2) + '-' + digitsOnly.slice(2, 4) + '-' + digitsOnly.slice(4, 10)
-    }
-    
-    // Limit to 10 characters (DD-MM-YYYY)
-    if (formatted.length > 10) {
-      formatted = formatted.slice(0, 10)
-    }
-    
-    // Allow typing even if invalid, but validate on blur
-    handleChange("date", formatted)
-  }
-
-  const handleDateBlur = (e) => {
-    const dateString = e.target.value
-    if (dateString && !validateDate(dateString)) {
-      // Clear invalid date
-      handleChange("date", '')
-    }
-  }
-
-  const handleDateKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      const dateString = e.target.value
-      if (dateString && !validateDate(dateString)) {
-        // Clear invalid date
-        handleChange("date", '')
-      }
-      e.target.blur()
-    }
-  }
-
-  // Filter function to filter users based on search query
-  const filterUsers = useCallback((users, query) => {
-    if (!query || query.trim().length < 1) {
-      return users
-    }
-    const searchTerm = query.trim().toLowerCase()
-    return users.filter(user => 
-      user.username?.toLowerCase().includes(searchTerm) ||
-      user.email?.toLowerCase().includes(searchTerm)
-    )
-  }, [])
-
-  
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      // Check if click is outside both time picker containers
-      const clickedInsideStart = startTimeRef.current?.contains(event.target)
-      const clickedInsideEnd = endTimeRef.current?.contains(event.target)
-      
-      
-      if (!clickedInsideStart && showStartTimePicker) {
-        setShowStartTimePicker(false)
-      }
-      if (!clickedInsideEnd && showEndTimePicker) {
-        setShowEndTimePicker(false)
-      }
-    }
-
-    if (showStartTimePicker || showEndTimePicker) {
-      document.addEventListener("mousedown", handleClickOutside)
-      return () => document.removeEventListener("mousedown", handleClickOutside)
-    }
-  }, [showStartTimePicker, showEndTimePicker])
-
-
 
 
   const addChosenUsers = (user) => {
@@ -219,6 +178,8 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, userSea
     handleChange("participants", formData.participants.filter(p => p.id !== user.id))
   }
 
+
+  
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 overflow-visible">
       <div className="bg-white rounded-2xl shadow-xl w-[95vw] max-w-7xl h-[85vh] max-h-[85vh] overflow-x-visible relative flex flex-col">
@@ -237,10 +198,12 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, userSea
 
         {/* Form Content */}
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-          <div className="flex gap-8 overflow-y-auto overflow-x-visible flex-1 p-8 pb-6">
-            {/* Left Section */}
-            <div className="flex-1 pb-4">
+          <div className="overflow-y-auto overflow-x-visible flex-1 p-8 pb-6">
+            <div className="flex gap-8 overflow-x-visible">
+              {/* Left Section */}
+              <div className="flex-1 pb-4">
               {/* Event Name */}
+
               <div className="flex items-start gap-3" style={{ marginBottom: '1rem', marginTop: '1.2rem' }}>
                 <Calendar className="w-5 h-5 text-gray-500 flex-shrink-0 mt-2" />
                 <div className="flex-1">
@@ -257,7 +220,7 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, userSea
                     className={`flex-1 w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 ${
                       errors.name ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"
                     }`}
-                    required
+                    
                   />
                   {errors.name && (
                     <p className="text-red-500 text-sm mt-1">{errors.name}</p>
@@ -265,28 +228,30 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, userSea
                 </div>
               </div>
 
-              {/* Date */}
+              {/* Date */}              
               <div className="flex items-start gap-3" style={{ marginBottom: '1rem' }}>
-                <Calendar className="w-5 h-5 text-gray-500 flex-shrink-0 mt-2" />
+                <Calendar className="w-5 h-5 text-gray-500 shrink-0 mt-2" />
                 <div className="flex-1">
                   <input
-                    type="text"
+                    type="date"
                     placeholder="Data, np: 30-05-2025"
+                    min={new Date().toISOString().split('T')[0]}
                     value={formData.date}
+                    disabled={doTimeVote}
                     onChange={(e) => {
-                      handleDateChange(e)
+                      // handleDateChange(e)
+                      handleChange("date", e.target.value || "")
                       if (errors.date) {
                         setErrors(prev => ({ ...prev, date: "" }))
                       }
                     }}
-                    onBlur={handleDateBlur}
-                    onKeyDown={handleDateKeyDown}
                     maxLength={10}
                     className={`flex-1 w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 ${
                       errors.date ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"
-                    }`}
-                    required
+                    }
+                    bg-white`}
                   />
+                  
                   {errors.date && (
                     <p className="text-red-500 text-sm mt-1">{errors.date}</p>
                   )}
@@ -294,118 +259,81 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, userSea
               </div>
 
               {/* Start Time and End Time */}
-              <div className="flex gap-4 overflow-visible" style={{ marginBottom: '1rem' }}>
+              <div className="flex gap-4 overflow-visible flex-row" style={{ marginBottom: '1rem' }}>
                 <div className="flex items-start gap-3 flex-1 relative overflow-visible" ref={startTimeRef}>
-                  <Clock className="w-5 h-5 text-gray-500 flex-shrink-0 mt-2" />
+                  <Clock className="w-5 h-5 text-gray-500 shrink-0 mt-2" />
                   <div className="flex-1 relative">
                     <input
-                      type="text"
+                      type="time"
                       placeholder="Godzina startowa"
                       value={formData.startTime}
-                      readOnly
-                      onClick={() => {
-                        setShowStartTimePicker(true)
-                        setShowEndTimePicker(false)
-                        if (errors.startTime) {
-                          setErrors(prev => ({ ...prev, startTime: "" }))
-                        }
-                      }}
+                      onChange={(e) => handleChange("startTime", e.target.value || "")}
+                      disabled={doTimeVote}
                       className={`flex-1 w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 cursor-pointer ${
                         errors.startTime ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"
-                      }`}
-                      required
+                      }
+                      bg-white
+                      `}
+                      
                     />
                     {errors.startTime && (
                       <p className="text-red-500 text-sm mt-1">{errors.startTime}</p>
                     )}
-                    {showStartTimePicker && (
-                      <div className="absolute top-full left-0 mt-2 z-[100] overflow-visible">
-                        <TimePicker
-                          value={formData.startTime}
-                          onChange={(time) => {
-                            handleChange("startTime", time)
-                            setShowStartTimePicker(false)
-                            if (errors.startTime) {
-                              setErrors(prev => ({ ...prev, startTime: "" }))
-                            }
-                          }}
-                          onClose={() => setShowStartTimePicker(false)}
-                        />
-                      </div>
-                    )}
                   </div>
                 </div>
                 <div className="flex items-start gap-3 flex-1 relative overflow-visible" ref={endTimeRef}>
-                  <Clock className="w-5 h-5 text-gray-500 flex-shrink-0 mt-2" />
+                  <Clock className="w-5 h-5 text-gray-500 shrink-0 mt-2" />
                   <div className="flex-1 relative">
                     <input
-                      type="text"
+                      type="time"
                       placeholder="Godzina końcowa"
                       value={formData.endTime}
-                      readOnly
-                      onClick={() => {
-                        setShowEndTimePicker(true)
-                        setShowStartTimePicker(false)
-                        if (errors.endTime) {
-                          setErrors(prev => ({ ...prev, endTime: "" }))
-                        }
-                      }}
+                      disabled={doTimeVote}
+                      onChange={(e) => handleChange("endTime", e.target.value || "")}
                       className={`flex-1 w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 cursor-pointer ${
                         errors.endTime ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"
-                      }`}
-                      required
+                      }
+                      bg-white`}
                     />
                     {errors.endTime && (
                       <p className="text-red-500 text-sm mt-1">{errors.endTime}</p>
                     )}
-                    {showEndTimePicker && (
-                      <div className="absolute top-full left-0 mt-2 z-[100] overflow-visible">
-                        <TimePicker
-                          value={formData.endTime}
-                          onChange={(time) => {
-                            handleChange("endTime", time)
-                            setShowEndTimePicker(false)
-                            if (errors.endTime) {
-                              setErrors(prev => ({ ...prev, endTime: "" }))
-                            }
-                          }}
-                          onClose={() => setShowEndTimePicker(false)}
-                        />
-                      </div>
-                    )}
                   </div>
+                </div>
+                <div className="flex-col items-center gap-3" >
+                  <Checkbox checked={doTimeVote} onCheckedChange={(e) => setDoTimeVote(e)} 
+                  className="w-5 h-5 text-gray-500 shrink-0 mt-2"/>
+                  <p className="text-sm text-gray-500">Vote?</p>
                 </div>
               </div>
 
               {/* Location */}
-              <div className="flex items-center gap-3" style={{ marginBottom: '1rem' }}>
+              <div className="flex items-center gap-3 " style={{ marginBottom: '1rem' }}>
                 <MapPin className="w-5 h-5 text-gray-500 flex-shrink-0" />
                 <input
                   type="text"
-                  placeholder="Lokalizacja"
+                  placeholder="Lokalizacja (opcjonalnie przy głosowaniu miejsca)"
                   value={formData.location}
+                  disabled={doLocationVote}
                   onChange={(e) => handleChange("location", e.target.value)}
-                  className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 ${errors.location ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"}`}
                 />
+              {errors.location && (
+                  <p className="text-red-500 text-sm mt-1">{errors.location}</p>
+                )}
+              <div className="flex-col items-center gap-3" >
+                  <Checkbox checked={doLocationVote} onCheckedChange={(e) => setDoLocationVote(e)} 
+                  className="w-5 h-5 text-gray-500 shrink-0 mt-2"/>
+                  <p className="text-sm text-gray-500">Vote?</p>
+                </div>
+                
               </div>
 
-              {/* Voting Option */}
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="voting"
-                  checked={formData.voting}
-                  onChange={(e) => handleChange("voting", e.target.checked)}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <label htmlFor="voting" className="text-gray-700 cursor-pointer">
-                  Głosowanie
-                </label>
-              </div>
-            </div>
 
-            {/* Right Section */}
-            <div className="flex-1 space-y-6 pb-4">
+              </div>
+
+              {/* Right Section */}
+              <div className="flex-1 space-y-6 pb-4">
               {/* Information Icon */}
               <div className="flex items-start gap-2">
                 <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0 mt-1">
@@ -449,6 +377,7 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, userSea
                   ))}
                 </div>
               )}
+
               {formData.invitees.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {formData.invitees.map((invitee, index) => (
@@ -471,7 +400,51 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, userSea
                   ))}
                 </div>
               )}
+
+              </div>
+
             </div>
+
+            {/* Voting */}
+            <div className={`flex flex-col gap-4
+              ${(errors.timeVote || errors.locationVote) ? "border-red-500 focus:ring-red-500 border-4" : ""}`}>
+                {
+                  doTimeVote &&
+                  <GeneralVote user={user} eventId={formData.id} voteObj={event?.voteObjects?.time[0]}  type="time" ref={timeVoteRef} disabled={!!event?.id}/>
+
+                  
+                }
+                {doTimeVote && errors.timeVote && (
+                  <p className="text-red-500 text-sm mt-1">{errors.timeVote}</p>
+                )}
+                {
+                  doLocationVote &&
+                  <GeneralVote user={user} eventId={formData.id} voteObj={event?.voteObjects?.location[0]} type="location" ref={locationVoteRef} disabled={!!event?.id}/>
+                }
+                {doLocationVote && errors.locationVote && (
+                  <p className="text-red-500 text-sm mt-1">{errors.locationVote}</p>
+                )}
+              
+            </div>
+            <div className="flex flex-row gap-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setVoteNum(prev => prev + 1)
+                }}
+              >
+                Dodaj głosowanie ogólne
+              </Button>
+              
+            </div>
+            {voteNum > 0 && Array.from({ length: voteNum }).map((_, index) => (
+                <GeneralVote user={user} key={index} eventId={formData.id} ref={(element) => {generalVoteRef.current[index] = element}}
+                />
+              ))}
+           {errors.votes && (
+            <p className="text-red-500 text-sm mt-1">{errors.votes}</p>
+           )}
           </div>
 
           {/* Footer - Fixed at bottom right */}
@@ -492,6 +465,7 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, userSea
               {isEditing ? "Zapisz zmiany" : "Utwórz"}
             </Button>
           </div>
+
         </form>
       </div>
     </div>
