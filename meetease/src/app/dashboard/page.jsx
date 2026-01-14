@@ -13,12 +13,42 @@ import serverActions from "@/lib/serverActions"
 
 export default async function DashboardPage() {
     const { supabase, user, logout } = await getAuthenticatedUser()
-    const events = await fetchEventsByUserId(user.id)
+    const events = await fetchEventsByUserId(user.id) || []
     console.log("Events:", events)
+
+    // Fetch user profile to get username
+    const { data: profile } = await supabase
+        .from("profiles")
+        .select("username, email")
+        .eq("id", user.id)
+        .maybeSingle()
+
+    const username = profile?.username ?? user.user_metadata?.username ?? user.email ?? "Użytkownik"
+    const userWithProfile = {
+        ...user,
+        username,
+        email: profile?.email ?? user.email ?? ""
+    }
 
     return (
         <>
-            <DashboardContent user={user} logout={logout} serverActions={serverActions} events={events} />
+            <DashboardContent
+              user={userWithProfile}
+              logout={logout}
+              events={events}
+              onCreateEvent={serverActions.handleCreateEventServerAction}
+              onJoinEvent={serverActions.handleJoinEventServerAction}
+              onLeaveEvent={serverActions.handleLeaveEventServerAction}
+              fetchParticipatingEvents={serverActions.handleFetchParticipatingEvents}
+              fetchPendingInvitations={serverActions.handleFetchPendingInvitations}
+              acceptInvitation={serverActions.handleAcceptInvitation}
+              declineInvitation={serverActions.handleDeclineInvitation}
+              fetchVote={serverActions.handleFetchGeneralVote}
+              fetchEventVotes={serverActions.handleFetchEventVotes}
+              castVote={serverActions.handleCastGeneralVote}
+              closeVote={serverActions.handleCloseGeneralVote}
+              deleteVote={serverActions.handleDeleteGeneralVote}
+            />
 
            
             {/* <EventDetailsModal user={user}/> */}

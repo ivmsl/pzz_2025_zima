@@ -351,17 +351,22 @@ export async function createEvent(eventData, creatorId) {
     //     }
     // }
     
-    // Prepare event data for insertion
+    const specialVotes = eventData.specialVotes || {}
+    const hasTimeVote = !!specialVotes.time
+    const hasLocationVote = !!specialVotes.location
+
+    // Prepare event data for insertion (allow nulls when special voting is used)
+    const safeDate = eventData.date ? eventData.date.split('-').reverse().join('-') : null // DD-MM-YYYY -> YYYY-MM-DD
     const newEvent = {
         name: eventData.name,
         description: eventData.description || null,
         creator_id: eventData.creator_id,
-        time_start: eventData.startTime,
-        time_end: eventData.endTime,
-        date: eventData.date.split('-').reverse().join('-'), //DD-MM-YYYY to YYYY-MM-DD 
+        time_start: eventData.startTime || null,
+        time_end: eventData.endTime || null,
+        date: safeDate,
         location: eventData.location || null,
-        time_poll_enabled: eventData.voting || false,
-        location_poll_enabled: false, // Default to false, can be set separately if needed
+        time_poll_enabled: hasTimeVote,
+        location_poll_enabled: hasLocationVote,
     }
     
     // Insert the event
@@ -376,21 +381,106 @@ export async function createEvent(eventData, creatorId) {
         throw new Error(eventError?.message || "Failed to create event")
     }
     
-    // Add participants to users_events table if provided
+    // Create invitations for participants instead of directly adding them to users_events
     if (eventData.participants && eventData.participants.length > 0) {
-        const participantsData = eventData.participants.map((participantId) => ({
+        const invitationsData = eventData.participants.map((participantId) => ({
             event_id: createdEvent.id,
-            user_id: participantId,
+            sender_id: eventData.creator_id,
+            receiver_id: participantId,
+            status: "pending"
         }))
         
-        const { error: participantsError } = await supabase
-            .from("users_events")
-            .insert(participantsData)
+        const { error: invitationsError } = await supabase
+            .from("invites")
+            .insert(invitationsData)
         
-        if (participantsError) {
-            console.error("Error adding participants:", participantsError)
+        if (invitationsError) {
+            console.error("Error creating invitations:", invitationsError)
             // Don't throw here - event was created successfully, just log the error
         }
+    }
+
+    // Create general voting (poll) if enabled
+    if (eventData.voting && eventData.vote?.question && Array.isArray(eventData.vote?.options)) {
+        console.log("Creating vote for event:", createdEvent.id, eventData.vote)
+        const question = String(eventData.vote.question).trim()
+        const options = eventData.vote.options.map((o) => String(o).trim()).filter(Boolean)
+
+        if (question && options.length >= 2) {
+            const { data: createdVote, error: voteError } = await supabase
+                .from("votes")
+                .insert({
+                    event_id: createdEvent.id,
+                    type: "general",
+                    question,
+                    deadline: eventData.vote.deadline || null,
+                })
+                .select("id")
+                .single()
+
+            if (voteError || !createdVote) {
+                console.error("Error creating vote:", voteError)
+            } else {
+                console.log("Vote created:", createdVote)
+                const optionsRows = options.map((option_text) => ({
+                    vote_id: createdVote.id,
+                    option_text,
+                }))
+
+                const { error: optionsError } = await supabase
+                    .from("vote_options")
+                    .insert(optionsRows)
+
+                if (optionsError) {
+                    console.error("Error creating vote options:", optionsError)
+                } else {
+                    console.log("Vote options created:", optionsRows.length)
+                }
+            }
+        }
+    }
+
+    // Create special votes (time/location) if provided
+    const createVote = async ({ type, question, options, deadline }) => {
+        const q = String(question || "").trim()
+        const opts = (options || []).map((o) => String(o).trim()).filter(Boolean)
+        if (!q || opts.length < 2) return
+
+        const { data: createdVote, error: voteError } = await supabase
+            .from("votes")
+            .insert({
+                event_id: createdEvent.id,
+                type,
+                question: q,
+                deadline: deadline || null,
+            })
+            .select("id")
+            .single()
+
+        if (voteError || !createdVote) {
+            console.error(`Error creating ${type} vote:`, voteError)
+            return
+        }
+
+        const optionsRows = opts.map((option_text) => ({
+            vote_id: createdVote.id,
+            option_text,
+        }))
+
+        const { error: optionsError } = await supabase
+            .from("vote_options")
+            .insert(optionsRows)
+
+        if (optionsError) {
+            console.error(`Error creating ${type} vote options:`, optionsError)
+        }
+    }
+
+    if (specialVotes.location) {
+        await createVote({ type: "location", ...specialVotes.location })
+    }
+    if (specialVotes.time) {
+        await createVote({ type: "time", ...specialVotes.time })
     }
     
     return createdEvent
@@ -433,6 +523,138 @@ export function parseEventDateTime(event) {
     }
     
     return { eventDate, eventTime }
+}
+
+/**
+ * Fetch events user is participating in (from users_events table) and events created by user
+ * @param {string} userId - The user ID
+ * @returns {Promise<Array>} - Array of event objects
+ */
+export async function fetchUserParticipatingEvents(userId) {
+    const supabase = await createClient()
+    
+    // Get event IDs from users_events (events user is attending)
+    const { data: userEvents, error: userEventsError } = await supabase
+        .from("users_events")
+        .select("event_id")
+        .eq("user_id", userId)
+    
+    let eventIds = []
+    if (!userEventsError && userEvents) {
+        eventIds = userEvents.map(ue => ue.event_id)
+    }
+    
+    // Also get events created by the user
+    const { data: createdEvents, error: createdEventsError } = await supabase
+        .from("events")
+        .select("id")
+        .eq("creator_id", userId)
+    
+    if (!createdEventsError && createdEvents) {
+        const createdEventIds = createdEvents.map(e => e.id)
+        // Combine both lists and remove duplicates
+        eventIds = [...new Set([...eventIds, ...createdEventIds])]
+    }
+    
+    if (eventIds.length === 0) {
+        return []
+    }
+    
+    // Fetch all event details
+    const { data: events, error: eventsError } = await supabase
+        .from("events")
+        .select("*")
+        .in("id", eventIds)
+        .order("date", { ascending: true })
+    
+    if (eventsError || !events) {
+        console.error("Error fetching participating events:", eventsError)
+        return []
+    }
+    
+    // Fetch creator usernames for events where user is not the creator
+    const eventsWithCreators = await Promise.all(
+        events.map(async (event) => {
+            if (event.creator_id === userId) {
+                return event // User is creator, no need to fetch
+            }
+            
+            const { data: creatorProfile } = await supabase
+                .from("profiles")
+                .select("username, email")
+                .eq("id", event.creator_id)
+                .single()
+            
+            return {
+                ...event,
+                creatorUsername: creatorProfile?.username || creatorProfile?.email || "Nieznany"
+            }
+        })
+    )
+    
+    return eventsWithCreators || []
+}
+
+/**
+ * Fetch pending invitations for a user
+ * @param {string} userId - The user ID (receiver)
+ * @returns {Promise<Array>} - Array of invitation objects with event and sender details
+ */
+export async function fetchPendingInvitations(userId) {
+    const supabase = await createClient()
+    
+    // Fetch invitations
+    const { data: invitations, error: invitationsError } = await supabase
+        .from("invites")
+        .select("id, event_id, sender_id, receiver_id, status")
+        .eq("receiver_id", userId)
+        .eq("status", "pending")
+    
+    if (invitationsError || !invitations || invitations.length === 0) {
+        return []
+    }
+    
+    // Fetch event details, sender profiles, and creator usernames
+    const invitationsWithDetails = await Promise.all(
+        invitations.map(async (invitation) => {
+            // Fetch event
+            const { data: event } = await supabase
+                .from("events")
+                .select("id, name, date, time_start, time_end, location, description, creator_id")
+                .eq("id", invitation.event_id)
+                .single()
+            
+            // Fetch sender profile
+            const { data: senderProfile } = await supabase
+                .from("profiles")
+                .select("username, email")
+                .eq("id", invitation.sender_id)
+                .single()
+            
+            // Fetch creator username if event exists
+            let creatorUsername = null
+            if (event?.creator_id) {
+                const { data: creatorProfile } = await supabase
+                    .from("profiles")
+                    .select("username, email")
+                    .eq("id", event.creator_id)
+                    .single()
+                
+                creatorUsername = creatorProfile?.username || creatorProfile?.email || "Nieznany"
+            }
+            
+            return {
+                ...invitation,
+                sender: senderProfile || { username: "Unknown", email: "" },
+                event: event ? {
+                    ...event,
+                    creatorUsername
+                } : null
+            }
+        })
+    )
+    
+    return invitationsWithDetails
 }
 
 
