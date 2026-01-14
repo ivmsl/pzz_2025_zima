@@ -1,12 +1,12 @@
 
 import { createEvent, joinEventByCode, leaveEvent, updateEvent, deleteEvent, fetchEventsByUserId} from "@/lib/eventService"
 import { fetchPendingInvitations, acceptPendingInvitation, declinePendingInvitation, searchUsersByUsername } from "@/lib/userService"
-import { registerVote } from "@/lib/voteService"
+import { registerVote, castAVote, fetchVoteVotes, fetchVotedVotesForEvent, fetchVoteResultsEventUser } from "@/lib/voteService"
 
 
 async function handleCreateEventServerAction(eventData) {
     "use server"
-    console.log("Event data:", eventData)
+    
     const { voteObjects, ...eventDataToHandle } = eventData
     const event = await createEvent(eventDataToHandle)
 
@@ -135,6 +135,76 @@ async function handleSearchUserByUsername(query) {
 }
 
 
+async function handleCastAVote(voteId, optionId, userId) {
+    "use server"
+    try {
+        const { success, error } = await castAVote(voteId, optionId, userId)
+        if (error) {
+            return { success: false, res: null, error: error }
+        }
+        return { success: true, res: success, error: null }
+    }
+    catch (error) {
+        console.error("Error casting vote:", error)
+        return { success: false, error: error.message }
+    }
+}
+
+
+async function handleFetchVoteVotes(voteId) {
+    "use server"
+    try {
+        const { success, error } = await fetchVoteVotes(voteId)
+        if (error) {
+            return { success: false, error: error }
+        }
+    }
+    catch (error) {
+        console.error("Error fetching vote votes:", error)
+        return { success: false, error: error.message }
+    }
+}
+
+async function handleFetchAllVoteResultsForEvent(eventId) {
+    "use server"
+    try {
+        const votes = await fetchVotedVotesForEvent(eventId)
+        .catch(error => {
+            console.error("Error fetching voted votes for event:", error)
+            return { success: false, votes: [], error: error.message }
+        })
+        console.log("votes: ", votes)
+        return { success: true, votes, error: null }
+    }
+    catch (error) {
+        console.error("Error fetching voted votes for event:", error)
+        return { success: false, votes: [], error: error.message }
+    }
+}
+
+async function handleFetchVoteResultsEventUser(eventId, userId) {
+    "use server"
+    try {
+        const voteResults = await fetchVoteResultsEventUser(eventId, userId)
+        
+        return { success: true, voteResults, error: null }
+    }
+    catch (error) {
+        console.error("Error fetching vote results for event:", error)
+        return { success: false, voteResults: [], error: error.message }
+    }
+}
+
+
+async function handleCheckUserHasVoted(userId, voteId) {
+    "use server"
+    const hasVoted = await checkUserHasVoted(userId, voteId)
+    .catch(error => {
+        console.error("Error checking user has voted:", error)
+        return { success: false, hasVoted: false, error: error.message }
+    })
+    return { success: true, hasVoted: hasVoted, error: null }
+}
 async function handleCastGeneralVote(voteId, optionId, userId) {
     "use server"
     const supabase = await createClient()
@@ -359,7 +429,11 @@ const serverActions = {
     handleAcceptInvitation,
     handleDeclineInvitation,
     handleSearchUserByUsername,
-    handleCastGeneralVote,
+    handleCheckUserHasVoted,
+    handleFetchVoteVotes,
+    handleFetchAllVoteResultsForEvent,
+    handleFetchVoteResultsEventUser,
+    handleCastAVote,
     handleCloseGeneralVote,
     handleDeleteGeneralVote
 

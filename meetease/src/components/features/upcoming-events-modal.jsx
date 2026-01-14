@@ -7,7 +7,18 @@ import { Button } from "@/components/ui/button"
 import EventCard from "@/components/events/eventCard"
 import { formatDate, formatTime } from "@/lib/utils"
 
-export default function UpcomingEventsModal({ user, open, onClose, serverActions }) {
+export default function UpcomingEventsModal({
+  user,
+  open,
+  onClose,
+  fetchParticipatingEvents,
+  onLeaveEvent,
+  fetchVote,
+  fetchEventVotes,
+  castVote,
+  closeVote,
+  deleteVote,
+}) {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(false)
 
@@ -20,7 +31,7 @@ export default function UpcomingEventsModal({ user, open, onClose, serverActions
   const loadEvents = async () => {
     setLoading(true)
     try {
-      const result = await serverActions.handleFetchParticipatingEvents(user.id)
+      const result = await fetchParticipatingEvents(user.id)
       if (result && result.success) {
         setEvents(Array.isArray(result.events) ? result.events : [])
       } else {

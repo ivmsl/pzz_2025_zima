@@ -418,7 +418,7 @@ export async function updateEvent(eventId, eventData, userId) {
         description: eventData.description || null,
         time_start: eventData.startTime,
         time_end: eventData.endTime,
-        date: eventData.date.split('-').reverse().join('-'), // DD-MM-YYYY to YYYY-MM-DD
+        date: eventData.date, // DD-MM-YYYY to YYYY-MM-DD
         location: eventData.location || null,
         time_poll_enabled: eventData.voting || false,
     }

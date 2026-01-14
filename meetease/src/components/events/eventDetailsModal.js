@@ -14,6 +14,7 @@ import {ScrollArea} from "@/components/ui/scrollarea";
 import EventCreatorComponent from "@/components/features/event-creator"
 import { Button } from "@/components/ui/button"
 
+import EventVotings from "@/components/events/event-votings"
 
 
 //event details — przekazywac info o wydarzeniach do modalu 
@@ -41,7 +42,6 @@ const defaultAttendees = [
     { id: 5, name: "John Doe"},
     { id: 6, name: "Jane Smith"},
 ];
-
 
 export default function EventDetailsModal({user, event = defaultEvent, attendees = defaultAttendees, serverActions}) {
     const [showEditForm, setShowEditForm] = useState(false)
@@ -106,17 +106,6 @@ export default function EventDetailsModal({user, event = defaultEvent, attendees
 
     return (
         <>
-{/* <<<<<<< HEAD
-        <Dialog>
-            <DialogTrigger asChild>
-                <Button variant="outline">{eventData.name}</Button>
-            </DialogTrigger>
-            <form>
-                <DialogContent className="sm:max-w-[425px]">
-                    <DialogHeader className={'!border-b-1 border-black pb-4'}>
-                        <DialogTitle className={'text-center text-2xl'}>{eventData.name}</DialogTitle>
-                    </DialogHeader>
-======= */}
             <Dialog open={isDialogOpen && !showDeleteConfirm} onOpenChange={(open) => {
                 if (!showDeleteConfirm) {
                     setIsDialogOpen(open)
@@ -172,24 +161,20 @@ export default function EventDetailsModal({user, event = defaultEvent, attendees
                                 </div>
                             </ScrollArea>
 
+                            Głosowania (ogólne + specjalne)
+                            <EventVotings
+                                user={user}
+                                event={event}
+                                fetchEventVotes={serverActions.handleFetchVoteResultsEventUser}
+                                castVote={serverActions.handleCastAVote}
+                                // closeVote={closeVote}
+                                // deleteVote={deleteVote}
+                            />
+
                         </div>
 
                     <DialogFooter className={'!border-t-1 border-black pt-4 !justify-between'}>
-{/* <<<<<<< HEAD
-                {event.creator_id === user.id &&                           
 
-
-                        <span className={'text-blue-500 cursor-pointer'} >Edytuj wydarzenie</span>        
-                    
-                }
-                <DialogClose asChild> 
-                    <Button variant="outline" onClick={() => serverActions.handleLeaveEventServerAction(event.id, user.id)}>
-                        <span className={'text-red-500 cursor-pointer'}>Opuść wydarzenie</span>
-                    </Button>
-                    
-                </DialogClose>
-                    
-======= */}
                         {isCreator && (
                             <>
                                 <button

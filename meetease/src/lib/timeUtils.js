@@ -61,7 +61,6 @@ export const dayTimeToTimestampTZ = (date, hour) => {
 }
 
 export const timestampTZToDayTime = (timestampTZ) => {
-  console.log("timestampTZ:  ", timestampTZ)
   const dateObj = new Date(timestampTZ);
 
   // Format YYYY-MM-DD
