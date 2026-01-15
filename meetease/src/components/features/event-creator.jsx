@@ -149,7 +149,7 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, userSea
     // Clear errors and submit
     setErrors({})
     onSubmit?.(formToSubmit)
-    // onClose?.()
+    onClose?.()
   }
 
   const handleChange = (field, value) => {

@@ -8,9 +8,10 @@ import UpcomingEventsModal from "./upcoming-events-modal"
 import InvitationsModal from "./invitations-modal"
 import EventCard from "@/components/events/eventCard"
 
-export default function DashboardContent({ user, logout, serverActions, events = [] }) {
+export default function DashboardContent({ user, logout, serverActions, events = []}) {
   const [showUpcomingEvents, setShowUpcomingEvents] = useState(false)
   const [showInvitations, setShowInvitations] = useState(false)
+  const [eventsData, setEventsData] = useState(events)
   // const [showEventDetailsModal, setShowEventDetailsModal] = useState(false)
   // const [eventsData, setEventsData] = useState(events)
   
@@ -20,6 +21,7 @@ export default function DashboardContent({ user, logout, serverActions, events =
       // The modal will reload when it reopens, but we could trigger a refresh here if needed
     }
   }
+  
 
   return (
     <div className="p-8">
