@@ -102,7 +102,6 @@ export default function FriendsListModal({
       <DialogContent className="sm:max-w-[550px] max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden border-none shadow-2xl">
         <DialogHeader className="shrink-0 px-6 pt-6 pb-4 border-b bg-white">
           <DialogTitle className="text-2xl font-bold flex items-center gap-2 text-gray-800">
-            <UserCheck className="w-6 h-6 text-blue-500" />
             Znajomi
           </DialogTitle>
         </DialogHeader>

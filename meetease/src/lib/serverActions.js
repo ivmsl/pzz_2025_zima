@@ -547,6 +547,52 @@ async function handleSendFriendRequest(senderId, targetUsername) {
   }
 }
 
+async function handleFetchNotifications(userId) {
+  "use server";
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("notifications")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(15);
+
+  return { success: !error, notifications: data || [], error };
+}
+
+async function handleMarkAllAsRead(userId) {
+  "use server";
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("notifications")
+    .update({ read: true })
+    .eq("user_id", userId)
+    .eq("read", false);
+  return { success: !error, error };
+}
+
+async function handleMarkAsRead(notificationId) {
+  "use server";
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("notifications")
+    .update({ read: true })
+    .eq("id", notificationId);
+
+  return { success: !error, error };
+}
+
+async function handleDeleteNotification(notificationId) {
+  "use server";
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("notifications")
+    .delete()
+    .eq("id", notificationId);
+
+  return { success: !error, error };
+}
+
 const serverActions = {
   handleCreateEventServerAction,
   handleJoinEventServerAction,
@@ -569,5 +615,9 @@ const serverActions = {
   handleAcceptFriendRequest,
   handleFetchUserFriends,
   handleSendFriendRequest,
+  handleMarkAllAsRead,
+  handleMarkAsRead,
+  handleFetchNotifications,
+  handleDeleteNotification,
 };
 export default serverActions;
