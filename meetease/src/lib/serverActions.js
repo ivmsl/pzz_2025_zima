@@ -593,6 +593,17 @@ async function handleDeleteNotification(notificationId) {
   return { success: !error, error };
 }
 
+async function handleDeleteAllNotifications(userId) {
+  "use server";
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("notifications")
+    .delete()
+    .eq("user_id", userId);
+
+  return { success: !error, error };
+}
+
 const serverActions = {
   handleCreateEventServerAction,
   handleJoinEventServerAction,
@@ -619,5 +630,6 @@ const serverActions = {
   handleMarkAsRead,
   handleFetchNotifications,
   handleDeleteNotification,
+  handleDeleteAllNotifications,
 };
 export default serverActions;
