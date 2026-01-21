@@ -1,27 +1,33 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import EventDetailsModal from "@/components/events/eventDetailsModal"
-import UpcomingEventsModal from "./upcoming-events-modal"
-import InvitationsModal from "./invitations-modal"
-import EventCard from "@/components/events/eventCard"
+import { useState } from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import EventDetailsModal from "@/components/events/eventDetailsModal";
+import UpcomingEventsModal from "./upcoming-events-modal";
+import InvitationsModal from "./invitations-modal";
+import EventCard from "@/components/events/eventCard";
+import FriendsListModal from "./friends-modal";
 
-export default function DashboardContent({ user, logout, serverActions, events = []}) {
-  const [showUpcomingEvents, setShowUpcomingEvents] = useState(false)
-  const [showInvitations, setShowInvitations] = useState(false)
-  const [eventsData, setEventsData] = useState(events)
+export default function DashboardContent({
+  user,
+  logout,
+  serverActions,
+  events = [],
+}) {
+  const [showUpcomingEvents, setShowUpcomingEvents] = useState(false);
+  const [showInvitations, setShowInvitations] = useState(false);
+  const [showFriendsList, setShowFriendsList] = useState(false);
+  const [eventsData, setEventsData] = useState(events);
   // const [showEventDetailsModal, setShowEventDetailsModal] = useState(false)
   // const [eventsData, setEventsData] = useState(events)
-  
+
   const handleInvitationHandled = () => {
     // Refresh upcoming events if open
     if (showUpcomingEvents) {
       // The modal will reload when it reopens, but we could trigger a refresh here if needed
     }
-  }
-  
+  };
 
   return (
     <div className="p-8">
@@ -66,36 +72,37 @@ export default function DashboardContent({ user, logout, serverActions, events =
         <Button type="submit">Wyloguj</Button>
       </form> */}
 
-      <div className="flex flex-col gap-4 p-8">     
-                <div className="flex flex-col py-4 gap-4 justify-center w-1/2">
-                    {events && events.length > 0 && events.map((event) => (
-                            <EventCard user={user} event={event} key={event.id} serverActions={serverActions}/>
-                    ))}
-                </div>
+      <div className="flex flex-col gap-4 p-8">
+        <div className="flex flex-col py-4 gap-4 justify-center w-1/2">
+          {events &&
+            events.length > 0 &&
+            events.map((event) => (
+              <EventCard
+                user={user}
+                event={event}
+                key={event.id}
+                serverActions={serverActions}
+              />
+            ))}
+        </div>
       </div>
 
       <div className="flex-1 flex justify-end items-start pt-4 pr-8">
         <Button
-            variant="outline"
-            className="rounded-lg px-6 py-3 text-base"
+          variant="outline"
+          className="rounded-lg px-6 py-3 text-base"
+          onClick={() => setShowFriendsList(true)}
         >
-            Lista Znajomych
+          Lista Znajomych
         </Button>
       </div>
 
-      <Button
-            onClick={() => setShowUpcomingEvents(true)}
-            variant="outline"
-          >
-            Nadchodzące
-          </Button>
-          <Button
-            onClick={() => setShowInvitations(true)}
-            variant="outline"
-          >
-            Zaproszenia
-          </Button>
-
+      <Button onClick={() => setShowUpcomingEvents(true)} variant="outline">
+        Nadchodzące
+      </Button>
+      <Button onClick={() => setShowInvitations(true)} variant="outline">
+        Zaproszenia
+      </Button>
 
       {showUpcomingEvents && (
         <UpcomingEventsModal
@@ -115,7 +122,15 @@ export default function DashboardContent({ user, logout, serverActions, events =
           onInvitationHandled={handleInvitationHandled}
         />
       )}
-    </div>
-  )
-}
 
+      {showFriendsList && (
+        <FriendsListModal
+          user={user}
+          open={showFriendsList}
+          onClose={() => setShowFriendsList(false)}
+          serverActions={serverActions}
+        />
+      )}
+    </div>
+  );
+}
