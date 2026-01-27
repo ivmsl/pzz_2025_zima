@@ -83,11 +83,11 @@ export default function GeneralVote({ eventId, voteObj, type, ref, disabled = fa
             }
 
             if (type === "general" || type === "location") {
-                let isValid = voteDescriptor.question.trim() && options.length >= 2 && voteDescriptor.deadline && voteDescriptor.deadlineTime && options.reduce((acc, curr) => acc && curr.trim(), true)
+                let isValid = voteDescriptor.question.trim() && voteDescriptor.question.trim().length <= 100 && options.length >= 2 && voteDescriptor.deadline && voteDescriptor.deadlineTime && options.reduce((acc, curr) => acc && curr.trim(), true)
                 return isValid && true;                
             } else if (type === "time") {
                 // Validate each timed option: must have date/start/end and end > start
-                let isValid = voteDescriptor.question.trim() && timedOption.length >= 2 && timedOption.reduce((acc, curr) => {
+                let isValid = voteDescriptor.question.trim() && voteDescriptor.question.trim().length <= 100 && timedOption.length >= 2 && timedOption.reduce((acc, curr) => {
                     const hasFields = acc && curr.date.trim() && curr.start.trim() && curr.end.trim()
                     if (!hasFields) return false
 
@@ -154,6 +154,7 @@ export default function GeneralVote({ eventId, voteObj, type, ref, disabled = fa
                       value={voteDescriptor.question}
                       onChange={(e) => handleChange("question", e.target.value)}
                       placeholder="Np. Gdzie idziemy na kolację?"
+                      maxLength="100"
                       className="w-full border border-gray-300 rounded-lg px-5 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                     />
                   </div>
