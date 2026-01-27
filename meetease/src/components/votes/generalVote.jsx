@@ -8,7 +8,28 @@ import { useEffect } from "react"
 
 // enum VoteType = "general" | "location" | "time"
 
-export default function GeneralVote({ eventId, voteObj, type, ref, disabled = false }) {
+export default function GeneralVote({ eventId, voteObj, type, ref, disabled = false, eventStart = null }) {
+
+    const timeToMinutes = (timeStr) => {
+        if (!timeStr || !String(timeStr).includes(":")) return null
+        const [h, m] = String(timeStr).split(":").map((x) => Number(x))
+        if (Number.isNaN(h) || Number.isNaN(m)) return null
+        return h * 60 + m
+    }
+
+    const toDateTimeMs = (dateStr, timeStr) => {
+        if (!dateStr || !timeStr) return null
+        const ms = new Date(`${dateStr}T${timeStr}:00`).getTime()
+        return Number.isFinite(ms) ? ms : null
+    }
+
+    const getEarliestTimedOptionStartMs = () => {
+        const starts = (timedOption || [])
+            .map((o) => toDateTimeMs(o?.date, o?.start))
+            .filter((v) => typeof v === "number")
+        if (!starts.length) return null
+        return Math.min(...starts)
+    }
 
     const [voteDescriptor, setVoteDescriptor] = useState({
         id: voteObj?.voteDescriptor?.id || "",
@@ -36,11 +57,54 @@ export default function GeneralVote({ eventId, voteObj, type, ref, disabled = fa
             }
         },
         checkValidity: () => {
+            // Rule: if deadline is provided, it cannot be after event start time
+            // - For fixed-time events, `eventStart` is passed from parent (EventCreator)
+            // - For time-vote, we approximate event start as the earliest proposed option start
+            const deadlineHasAny = !!(voteDescriptor.deadline || voteDescriptor.deadlineTime)
+            const deadlineProvided = !!(voteDescriptor.deadline && voteDescriptor.deadlineTime)
+
+            // If user starts setting a deadline, require both fields
+            if (deadlineHasAny && !deadlineProvided) {
+                return false
+            }
+
+            const deadlineMs = deadlineProvided ? toDateTimeMs(voteDescriptor.deadline, voteDescriptor.deadlineTime) : null
+
+            if (deadlineProvided) {
+                const eventStartMs =
+                    eventStart?.date && eventStart?.startTime
+                        ? toDateTimeMs(eventStart.date, eventStart.startTime)
+                        : (type === "time" ? getEarliestTimedOptionStartMs() : null)
+
+                // Voting must end no later than event start (i.e., event start >= deadline)
+                if (deadlineMs !== null && eventStartMs !== null && deadlineMs > eventStartMs) {
+                    return false
+                }
+            }
+
             if (type === "general" || type === "location") {
                 let isValid = voteDescriptor.question.trim() && options.length >= 2 && voteDescriptor.deadline && voteDescriptor.deadlineTime && options.reduce((acc, curr) => acc && curr.trim(), true)
                 return isValid && true;                
             } else if (type === "time") {
-                let isValid = voteDescriptor.question.trim() && timedOption.length >= 2 && timedOption.reduce((acc, curr) => acc && curr.date.trim() && curr.start.trim() && curr.end.trim(), true)
+                // Validate each timed option: must have date/start/end and end > start
+                let isValid = voteDescriptor.question.trim() && timedOption.length >= 2 && timedOption.reduce((acc, curr) => {
+                    const hasFields = acc && curr.date.trim() && curr.start.trim() && curr.end.trim()
+                    if (!hasFields) return false
+
+                    const startMin = timeToMinutes(curr.start)
+                    const endMin = timeToMinutes(curr.end)
+                    if (startMin === null || endMin === null) return false
+                    if (endMin <= startMin) return false
+
+                    // If a voting deadline is set, event options cannot start before the deadline
+                    if (deadlineMs !== null) {
+                        const optStartMs = toDateTimeMs(curr.date, curr.start)
+                        if (optStartMs === null) return false
+                        if (optStartMs < deadlineMs) return false
+                    }
+
+                    return true
+                }, true)
                 return isValid && true;
             }
             else return false;

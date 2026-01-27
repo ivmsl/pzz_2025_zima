@@ -11,6 +11,8 @@ import GeneralVote from "@/components/votes/generalVote"
 // import serverActions from "@/lib/serverActions"
 
 export default function EventCreatorComponent({ user, onClose, onSubmit, userSearchFn, event = null, isEditing = false, participants = [] }) {
+  const MAX_EVENT_NAME_LENGTH = 50
+
   // Convert date from YYYY-MM-DD to DD-MM-YYYY format
   const formatDateForInput = (dateString) => {
     if (!dateString) return ""
@@ -49,6 +51,10 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, userSea
   const [doTimeVote, setDoTimeVote] = useState(event?.time_poll_enabled ? true : false || false)
   const [doLocationVote, setDoLocationVote] = useState(event?.location_poll_enabled ? true : false || false)
 
+  const eventStart = (!doTimeVote && formData.date && formData.startTime)
+    ? { date: formData.date, startTime: formData.startTime }
+    : null
+
 
   const startTimeRef = useRef(null)
   const endTimeRef = useRef(null)
@@ -77,6 +83,10 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, userSea
       newErrors.name = "Nazwa wydarzenia jest wymagana"
     }
 
+    if (formData.name.trim().length > MAX_EVENT_NAME_LENGTH) {
+      newErrors.name = `Nazwa wydarzenia może mieć maksymalnie ${MAX_EVENT_NAME_LENGTH} znaków`
+    }
+
     if (!doTimeVote) {
       if (!formData.date) {
         newErrors.date = "Data jest wymagana i musi być prawidłowa"
@@ -86,6 +96,18 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, userSea
       }
       if (!formData.endTime.trim()) {
         newErrors.endTime = "Godzina końcowa jest wymagana"
+      }
+
+      // Validate time order: end must be after start
+      if (formData.startTime.trim() && formData.endTime.trim()) {
+        const [sh, sm] = formData.startTime.split(":").map((x) => Number(x))
+        const [eh, em] = formData.endTime.split(":").map((x) => Number(x))
+        const startMinutes = sh * 60 + sm
+        const endMinutes = eh * 60 + em
+
+        if (!Number.isNaN(startMinutes) && !Number.isNaN(endMinutes) && endMinutes <= startMinutes) {
+          newErrors.endTime = "Godzina końcowa musi być późniejsza niż startowa"
+        }
       }
     } else {
       if (!timeVoteRef.current?.checkValidity()) {
@@ -217,11 +239,15 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, userSea
                         setErrors(prev => ({ ...prev, name: "" }))
                       }
                     }}
+                    maxLength={MAX_EVENT_NAME_LENGTH}
                     className={`flex-1 w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 ${
                       errors.name ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"
                     }`}
                     
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Maksymalna długość nazwy wydarzenia wynosi {MAX_EVENT_NAME_LENGTH} znaków
+                  </p>
                   {errors.name && (
                     <p className="text-red-500 text-sm mt-1">{errors.name}</p>
                   )}
@@ -410,7 +436,7 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, userSea
               ${(errors.timeVote || errors.locationVote) ? "border-red-500 focus:ring-red-500 border-4" : ""}`}>
                 {
                   doTimeVote &&
-                  <GeneralVote user={user} eventId={formData.id} voteObj={event?.voteObjects?.time[0]}  type="time" ref={timeVoteRef} disabled={!!event?.id}/>
+                  <GeneralVote user={user} eventId={formData.id} voteObj={event?.voteObjects?.time[0]}  type="time" ref={timeVoteRef} disabled={!!event?.id} />
 
                   
                 }
@@ -419,7 +445,7 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, userSea
                 )}
                 {
                   doLocationVote &&
-                  <GeneralVote user={user} eventId={formData.id} voteObj={event?.voteObjects?.location[0]} type="location" ref={locationVoteRef} disabled={!!event?.id}/>
+                  <GeneralVote user={user} eventId={formData.id} voteObj={event?.voteObjects?.location[0]} type="location" ref={locationVoteRef} disabled={!!event?.id} eventStart={eventStart} />
                 }
                 {doLocationVote && errors.locationVote && (
                   <p className="text-red-500 text-sm mt-1">{errors.locationVote}</p>
@@ -440,6 +466,7 @@ export default function EventCreatorComponent({ user, onClose, onSubmit, userSea
             </div>
             {voteNum > 0 && Array.from({ length: voteNum }).map((_, index) => (
                 <GeneralVote user={user} key={index} eventId={formData.id} ref={(element) => {generalVoteRef.current[index] = element}}
+                eventStart={eventStart}
                 />
               ))}
            {errors.votes && (

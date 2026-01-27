@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { createClient } from "@/utils/supabase/client"
 
 export default function RegisterComponent({ onClose }) {
+  const MAX_FIELD_LENGTH = 50
   const [username, setUsername] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -16,6 +17,22 @@ export default function RegisterComponent({ onClose }) {
 
   const handleRegister = async () => {
     setError("")
+
+    const usernameTooLong = username.length > MAX_FIELD_LENGTH
+    const emailTooLong = email.length > MAX_FIELD_LENGTH
+
+    if (usernameTooLong && emailTooLong) {
+      setError(`Nazwa użytkownika i adres e-mail mogą mieć maksymalnie ${MAX_FIELD_LENGTH} znaków`)
+      return
+    }
+    if (usernameTooLong) {
+      setError(`Nazwa użytkownika może mieć maksymalnie ${MAX_FIELD_LENGTH} znaków`)
+      return
+    }
+    if (emailTooLong) {
+      setError(`Adres e-mail może mieć maksymalnie ${MAX_FIELD_LENGTH} znaków`)
+      return
+    }
 
     if (password !== confirmPassword) {
       setError("Hasła nie są takie same")
@@ -60,17 +77,25 @@ export default function RegisterComponent({ onClose }) {
           <input
             placeholder="Nazwa użytkownika"
             value={username}
+            maxLength={MAX_FIELD_LENGTH}
             onChange={(e) => setUsername(e.target.value)}
             className="border border-gray-400 p-3 rounded-xl bg-white"
           />
+          <p className="text-xs text-gray-600 -mt-2">
+            Maksymalna długość nazwy użytkownika wynosi {MAX_FIELD_LENGTH} znaków
+          </p>
 
           {/* Email */}
           <input
             placeholder="Email"
             value={email}
+            maxLength={MAX_FIELD_LENGTH}
             onChange={(e) => setEmail(e.target.value)}
             className="border border-gray-400 p-3 rounded-xl bg-white"
           />
+          <p className="text-xs text-gray-600 -mt-2">
+            Maksymalna długość adresu e-mail wynosi {MAX_FIELD_LENGTH} znaków
+          </p>
 
           {/* Extra spacing before password fields */}
           <div className="mt-3 flex flex-col gap-4">
