@@ -1,3 +1,19 @@
+/**
+ * @brief Komponent  okna logowania
+ *
+ * Komponent  okna logowania, pozwala na wprowadzenie danych logowania i logowanie do aplikacji.
+ *
+ * @returns {JSX.Element} Komponent modalnego okna logowania
+ *
+ * @details
+ * - Funkcja pobiera dane użytkownika.
+ * - Funkcja korzysta z serverowych funkcji supabase do logowania.
+ * 
+ * @see supabase
+ * @see createClient
+ */
+
+
 "use client"
 
 import { useState } from "react"

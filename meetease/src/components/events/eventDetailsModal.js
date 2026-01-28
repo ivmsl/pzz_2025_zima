@@ -1,3 +1,29 @@
+/**
+ * @brief Komponent wydarzenia w modalnym oknie
+ *
+ * Komponent wydarzenia w modalnym oknie, pozwala na wyświetlanie danych o wydarzeniu w modalnym oknie.
+ *
+ * @returns {JSX.Element} Komponent wydarzenia w modalnym oknie
+ * 
+ * @param {Object} user - Użytkownik
+ * @param {Object} event - Wydarzenie
+ * @param {Object} attendees - Uczestnicy wydarzenia
+ * @param {Object} serverActions - Funkcje serwera
+ *
+ * @details
+ * - jest wykorzystywany w EventCard.jsx
+ * - attendees są przekazywane oddzielnie poniewaz tak to bylo historicznie
+ * - Funkcja pobiera dane użytkownika za pomocą useState.
+ * - Przekazuje dane do komponentu EventCreatorComponent.
+ * - Przekazuje dane do komponentu EventVotings.
+ *
+ * @see EventCreatorComponent
+ * @see EventVotings
+ * @see serverActions
+ */
+
+
+
 "use client"
 import * as React from "react"
 import { useState } from "react"

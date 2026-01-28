@@ -20,6 +20,13 @@ import {
   fetchVoteResultsEventUser,
 } from "@/lib/voteService";
 import { createClient } from "@/utils/supabase/server";
+
+/**
+ * Akcja serwera: tworzy nowe wydarzenie i rejestruje powiązane głosowania.
+ * Wywołuje createEvent z eventService, a następnie registerVote dla voteObjects.
+ * @param {Object} eventData - Dane wydarzenia (nazwa, data, uczestnicy itd.) oraz opcjonalnie voteObjects
+ * @returns {Promise<void>} - Nie zwraca ustandaryzowanego obiektu; błędy głosowań są tylko logowane
+ */
 async function handleCreateEventServerAction(eventData) {
   "use server";
 
@@ -37,6 +44,13 @@ async function handleCreateEventServerAction(eventData) {
   // redirect("/dashboard")
 }
 
+/**
+ * Akcja serwera: dołącza użytkownika do wydarzenia na podstawie kodu zaproszenia.
+ * Opakowuje joinEventByCode i zwraca ustandaryzowany wynik { success, error }.
+ * @param {string} code - Kod zaproszenia do wydarzenia
+ * @param {string} userId - Identyfikator użytkownika dołączającego
+ * @returns {Promise<{success: boolean, error: string|null}>}
+ */
 async function handleJoinEventServerAction(code, userId) {
   "use server";
   const { success, error } = await joinEventByCode(code, userId);
@@ -47,6 +61,13 @@ async function handleJoinEventServerAction(code, userId) {
   }
 }
 
+/**
+ * Akcja serwera: usuwa użytkownika z listy uczestników wydarzenia.
+ * Opakowuje leaveEvent z eventService i zwraca { success, error }.
+ * @param {string} eventId - Identyfikator wydarzenia
+ * @param {string} userId - Identyfikator użytkownika opuszczającego wydarzenie
+ * @returns {Promise<{success: boolean, error: string|null}>}
+ */
 async function handleLeaveEventServerAction(eventId, userId) {
   "use server";
   const { success, error } = await leaveEvent(eventId, userId);
@@ -57,6 +78,14 @@ async function handleLeaveEventServerAction(eventId, userId) {
   }
 }
 
+/**
+ * Akcja serwera: aktualizuje istniejące wydarzenie (tylko twórca).
+ * Opakowuje updateEvent i zwraca ustandaryzowany wynik; updateEvent może rzucić wyjątek.
+ * @param {string} eventId - Identyfikator wydarzenia do aktualizacji
+ * @param {Object} eventData - Zaktualizowane dane (nazwa, data, uczestnicy, zaproszeni itd.)
+ * @param {string} userId - Identyfikator użytkownika (musi być twórcą)
+ * @returns {Promise<{success: boolean, error: string|null}>}
+ */
 async function handleUpdateEventServerAction(eventId, eventData, userId) {
   "use server";
   const { success, error } = await updateEvent(eventId, eventData, userId);
@@ -67,6 +96,12 @@ async function handleUpdateEventServerAction(eventId, eventData, userId) {
   }
 }
 
+/**
+ * Akcja serwera: usuwa wydarzenie (tylko twórca). Opakowuje deleteEvent z eventService.
+ * Używa bieżącego użytkownika z getAuthenticatedUser wewnątrz deleteEvent.
+ * @param {string} eventId - Identyfikator wydarzenia do usunięcia
+ * @returns {Promise<{success: boolean, error: string|null}>}
+ */
 async function handleDeleteEventServerAction(eventId) {
   "use server";
   await deleteEvent(eventId)
@@ -79,6 +114,11 @@ async function handleDeleteEventServerAction(eventId) {
     });
 }
 
+/**
+ * Akcja serwera: pobiera wszystkie wydarzenia, w których uczestniczy zalogowany użytkownik
+ * (utworzone przez niego oraz te, do których dołączył). Wywołuje fetchEventsByUserId bez argumentu.
+ * @returns {Promise<{success: boolean, events: Array, error: string|null}>}
+ */
 async function handleFetchParticipatingEvents() {
   "use server";
   try {
@@ -90,6 +130,12 @@ async function handleFetchParticipatingEvents() {
   }
 }
 
+/**
+ * Akcja serwera: pobiera listę oczekujących zaproszeń do wydarzeń dla użytkownika.
+ * Opakowuje fetchPendingInvitations z userService.
+ * @param {string} userId - Identyfikator użytkownika
+ * @returns {Promise<{success: boolean, invitations: Array, error: string|null}>}
+ */
 async function handleFetchPendingInvitations(userId) {
   "use server";
   try {
@@ -101,6 +147,13 @@ async function handleFetchPendingInvitations(userId) {
   }
 }
 
+/**
+ * Akcja serwera: akceptuje zaproszenie do wydarzenia i dodaje użytkownika do uczestników.
+ * Opakowuje acceptPendingInvitation(inviteId, eventId).
+ * @param {string} inviteId - Identyfikator zaproszenia
+ * @param {string} eventId - Identyfikator wydarzenia
+ * @returns {Promise<{success: boolean, error: string|null}>}
+ */
 async function handleAcceptInvitation(inviteId, eventId) {
   "use server";
   try {
@@ -116,6 +169,12 @@ async function handleAcceptInvitation(inviteId, eventId) {
   }
 }
 
+/**
+ * Akcja serwera: odrzuca zaproszenie do wydarzenia (usuwa/aktualizuje zaproszenie bez dołączania).
+ * Opakowuje declinePendingInvitation z userService.
+ * @param {string} inviteId - Identyfikator zaproszenia do odrzucenia
+ * @returns {Promise<{success: boolean, error: string|null}>}
+ */
 async function handleDeclineInvitation(inviteId) {
   "use server";
   try {
@@ -131,6 +190,12 @@ async function handleDeclineInvitation(inviteId) {
   }
 }
 
+/**
+ * Akcja serwera: wyszukuje użytkowników po nazwie użytkownika (username).
+ * Opakowuje searchUsersByUsername; przy błędzie zwraca pustą tablicę.
+ * @param {string} query - Fraza do wyszukania (np. fragment username)
+ * @returns {Promise<Array>} - Tablica znalezionych użytkowników lub []
+ */
 async function handleSearchUserByUsername(query) {
   "use server";
   return await searchUsersByUsername(query)
@@ -144,6 +209,13 @@ async function handleSearchUserByUsername(query) {
     });
 }
 
+/**
+ * Akcja serwera: oddaje głos w głosowaniu (jedna opcja). Opakowuje castAVote z voteService.
+ * @param {string} voteId - Identyfikator głosowania
+ * @param {string} optionId - Identyfikator wybranej opcji
+ * @param {string} userId - Identyfikator użytkownika głosującego
+ * @returns {Promise<{success: boolean, res: *|null, error: string|null}>}
+ */
 async function handleCastAVote(voteId, optionId, userId) {
   "use server";
   try {
@@ -158,6 +230,12 @@ async function handleCastAVote(voteId, optionId, userId) {
   }
 }
 
+/**
+ * Akcja serwera: pobiera dane głosowania (głosy/opcje) dla danego vote.
+ * Opakowuje fetchVoteVotes z voteService. W bloku catch zwraca { success: false, error }.
+ * @param {string} voteId - Identyfikator głosowania
+ * @returns {Promise<{success?: boolean, error?: string}>} - W try zwraca wynik fetchVoteVotes (bez success)
+ */
 async function handleFetchVoteVotes(voteId) {
   "use server";
   try {
@@ -171,6 +249,12 @@ async function handleFetchVoteVotes(voteId) {
   }
 }
 
+/**
+ * Akcja serwera: pobiera wszystkie głosowania i ich wyniki dla wydarzenia.
+ * Opakowuje fetchVotedVotesForEvent z voteService.
+ * @param {string} eventId - Identyfikator wydarzenia
+ * @returns {Promise<{success: boolean, votes: Array, error: string|null}>}
+ */
 async function handleFetchAllVoteResultsForEvent(eventId) {
   "use server";
   try {
@@ -186,6 +270,13 @@ async function handleFetchAllVoteResultsForEvent(eventId) {
   }
 }
 
+/**
+ * Akcja serwera: pobiera wyniki głosowań dla wydarzenia w kontekście użytkownika
+ * (np. które opcje wybrał, podsumowania). Opakowuje fetchVoteResultsEventUser z voteService.
+ * @param {string} eventId - Identyfikator wydarzenia
+ * @param {string} userId - Identyfikator użytkownika
+ * @returns {Promise<{success: boolean, voteResults: Array, error: string|null}>}
+ */
 async function handleFetchVoteResultsEventUser(eventId, userId) {
   "use server";
   try {
@@ -198,6 +289,13 @@ async function handleFetchVoteResultsEventUser(eventId, userId) {
   }
 }
 
+/**
+ * Akcja serwera: sprawdza, czy użytkownik już oddał głos w danym głosowaniu.
+ * Wywołuje checkUserHasVoted (voteService). Przy błędzie zwraca hasVoted: false.
+ * @param {string} userId - Identyfikator użytkownika
+ * @param {string} voteId - Identyfikator głosowania
+ * @returns {Promise<{success: boolean, hasVoted: boolean, error: string|null}>}
+ */
 async function handleCheckUserHasVoted(userId, voteId) {
   "use server";
   const hasVoted = await checkUserHasVoted(userId, voteId).catch((error) => {
@@ -206,6 +304,17 @@ async function handleCheckUserHasVoted(userId, voteId) {
   });
   return { success: true, hasVoted: hasVoted, error: null };
 }
+
+/**
+ * Akcja serwera: oddaje głos w głosowaniu „ogólnym” (general) z pełną walidacją po stronie serwera.
+ * Wewnętrznie: sprawdza, że opcja należy do głosowania, że głosowanie istnieje i nie jest zamknięte (deadline),
+ * że użytkownik ma dostęp (twórca lub uczestnik wydarzenia), usuwa poprzedni głos użytkownika w tym głosowaniu,
+ * wstawia nowy wpis do user_votes.
+ * @param {string} voteId - Identyfikator głosowania
+ * @param {string} optionId - Identyfikator wybranej opcji
+ * @param {string} userId - Identyfikator użytkownika
+ * @returns {Promise<{success: boolean, error: string|null}>}
+ */
 async function handleCastGeneralVote(voteId, optionId, userId) {
   "use server";
   const supabase = await createClient();
@@ -292,6 +401,14 @@ async function handleCastGeneralVote(voteId, optionId, userId) {
   }
 }
 
+/**
+ * Akcja serwera: zamyka głosowanie (tylko twórca wydarzenia). Ustawia deadline na „teraz”.
+ * Dla głosowań typu location/time dodatkowo wylicza zwycięską opcję i zapisuje ją w wydarzeniu
+ * (location, date/time_start/time_end, wyłącza time_poll_enabled/location_poll_enabled).
+ * @param {string} voteId - Identyfikator głosowania
+ * @param {string} userId - Identyfikator użytkownika (musi być twórcą wydarzenia)
+ * @returns {Promise<{success: boolean, error: string|null}>}
+ */
 async function handleCloseGeneralVote(voteId, userId) {
   "use server";
   const supabase = await createClient();
@@ -388,6 +505,13 @@ async function handleCloseGeneralVote(voteId, userId) {
   }
 }
 
+/**
+ * Akcja serwera: usuwa głosowanie (tylko twórca wydarzenia). Wewnętrznie usuwa wpisy user_votes
+ * dla opcji tego głosowania, potem vote_options, na końcu rekord głosowania z votes.
+ * @param {string} voteId - Identyfikator głosowania do usunięcia
+ * @param {string} userId - Identyfikator użytkownika (musi być twórcą wydarzenia)
+ * @returns {Promise<{success: boolean, error: string|null}>}
+ */
 async function handleDeleteGeneralVote(voteId, userId) {
   "use server";
   const supabase = await createClient();
@@ -434,6 +558,13 @@ async function handleDeleteGeneralVote(voteId, userId) {
   }
 }
 
+/**
+ * Akcja serwera: pobiera listę znajomych użytkownika (relacje z friends + profile).
+ * Zwraca relacje gdzie user_id lub friend_id = userId, z polami status, initiatedByMe,
+ * oraz danymi drugiej osoby (id, name, email).
+ * @param {string} userId - Identyfikator użytkownika
+ * @returns {Promise<{success: boolean, data?: Array, error?: string}>}
+ */
 async function handleFetchUserFriends(userId) {
   "use server";
   const supabase = await createClient();
@@ -469,6 +600,13 @@ async function handleFetchUserFriends(userId) {
   }
 }
 
+/**
+ * Akcja serwera: akceptuje prośbę o znajomość (status „requested” → „accepted”).
+ * Aktualizuje wiersz w friends gdzie user_id = friendId i friend_id = userId.
+ * @param {string} friendId - Identyfikator użytkownika, który wysłał zaproszenie (user_id w relacji)
+ * @param {string} userId - Identyfikator użytkownika akceptującego (friend_id w relacji)
+ * @returns {Promise<{success: boolean, error: *}>}
+ */
 async function handleAcceptFriendRequest(friendId, userId) {
   "use server";
   const supabase = await createClient();
@@ -479,6 +617,13 @@ async function handleAcceptFriendRequest(friendId, userId) {
   return { success: !error, error };
 }
 
+/**
+ * Akcja serwera: usuwa relację znajomości (w obie strony: A–B lub B–A).
+ * Usuwa wiersz z friends gdzie (user_id, friend_id) = (userId, friendId) lub (friendId, userId).
+ * @param {string} friendId - Identyfikator znajomego
+ * @param {string} userId - Identyfikator bieżącego użytkownika
+ * @returns {Promise<{success: boolean, error: *}>}
+ */
 async function handleRemoveFriend(friendId, userId) {
   "use server";
   const supabase = await createClient();
@@ -492,6 +637,14 @@ async function handleRemoveFriend(friendId, userId) {
   return { success: !error, error };
 }
 
+/**
+ * Akcja serwera: wysyła prośbę o znajomość do użytkownika o podanym username.
+ * Wewnętrznie: wyszukuje użytkownika po username, sprawdza że to nie ten sam użytkownik,
+ * że nie ma już relacji (zaproszenie lub znajomy), wstawia wiersz do friends ze statusem „requested”.
+ * @param {string} senderId - Identyfikator wysyłającego
+ * @param {string} targetUsername - Nazwa użytkownika (username) odbiorcy
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
 async function handleSendFriendRequest(senderId, targetUsername) {
   "use server";
   const supabase = await createClient();
@@ -547,6 +700,12 @@ async function handleSendFriendRequest(senderId, targetUsername) {
   }
 }
 
+/**
+ * Akcja serwera: pobiera powiadomienia użytkownika z tabeli notifications.
+ * Zwraca do 15 najnowszych, posortowane po created_at malejąco.
+ * @param {string} userId - Identyfikator użytkownika
+ * @returns {Promise<{success: boolean, notifications: Array, error: *}>}
+ */
 async function handleFetchNotifications(userId) {
   "use server";
   const supabase = await createClient();
@@ -560,6 +719,12 @@ async function handleFetchNotifications(userId) {
   return { success: !error, notifications: data || [], error };
 }
 
+/**
+ * Akcja serwera: oznacza wszystkie nieprzeczytane powiadomienia użytkownika jako przeczytane.
+ * Aktualizuje notifications: read = true gdzie user_id = userId i read = false.
+ * @param {string} userId - Identyfikator użytkownika
+ * @returns {Promise<{success: boolean, error: *}>}
+ */
 async function handleMarkAllAsRead(userId) {
   "use server";
   const supabase = await createClient();
@@ -571,6 +736,12 @@ async function handleMarkAllAsRead(userId) {
   return { success: !error, error };
 }
 
+/**
+ * Akcja serwera: oznacza jedno powiadomienie jako przeczytane.
+ * Aktualizuje notifications: read = true gdzie id = notificationId.
+ * @param {string} notificationId - Identyfikator powiadomienia
+ * @returns {Promise<{success: boolean, error: *}>}
+ */
 async function handleMarkAsRead(notificationId) {
   "use server";
   const supabase = await createClient();
@@ -582,6 +753,12 @@ async function handleMarkAsRead(notificationId) {
   return { success: !error, error };
 }
 
+/**
+ * Akcja serwera: usuwa jedno powiadomienie.
+ * Usuwa wiersz z notifications gdzie id = notificationId.
+ * @param {string} notificationId - Identyfikator powiadomienia
+ * @returns {Promise<{success: boolean, error: *}>}
+ */
 async function handleDeleteNotification(notificationId) {
   "use server";
   const supabase = await createClient();
@@ -593,6 +770,12 @@ async function handleDeleteNotification(notificationId) {
   return { success: !error, error };
 }
 
+/**
+ * Akcja serwera: usuwa wszystkie powiadomienia użytkownika.
+ * Usuwa z notifications wszystkie wiersze gdzie user_id = userId.
+ * @param {string} userId - Identyfikator użytkownika
+ * @returns {Promise<{success: boolean, error: *}>}
+ */
 async function handleDeleteAllNotifications(userId) {
   "use server";
   const supabase = await createClient();
@@ -604,12 +787,54 @@ async function handleDeleteAllNotifications(userId) {
   return { success: !error, error };
 }
 
+/**
+ * Akcja serwera: pobiera wszystkie wydarzenia powiązane z użytkownikiem
+ * (utworzone przez niego oraz te, w których uczestniczy), z uczestnikami i głosowaniami.
+ * Opakowuje fetchEventsByUserId z eventService. Zwraca surową tablicę wydarzeń (bez obiektu success/error).
+ * @param {string} userId - Identyfikator użytkownika
+ * @returns {Promise<Array>} - Tablica wydarzeń
+ */
 async function handleFetchEventsByUserId(userId) {
   "use server";
   const events = await fetchEventsByUserId(userId);
   return events;
 }
 
+/**
+ * @brief Zbiorczy obiekt akcji serwera (Server Actions) używanych w aplikacji MeetEase.
+ * 
+ * Zawiera handlery wywoływane z komponentów klienckich (np. formularze, przyciski)
+ * do operacji na wydarzeniach, zaproszeniach, głosowaniach, znajomych i powiadomieniach.
+ * Eksportowany jako domyślny eksport; import: `import serverActions from "@/lib/serverActions"`.
+ * 
+ * @see handleCreateEventServerAction - Tworzenie nowego wydarzenia
+ * @see handleJoinEventServerAction - Dołączanie do wydarzenia
+ * @see handleLeaveEventServerAction - Opuszczanie wydarzenia
+ * @see handleUpdateEventServerAction - Aktualizacja wydarzenia
+ * @see handleDeleteEventServerAction - Usuwanie wydarzenia
+ * @see handleFetchParticipatingEvents - Pobieranie wydarzeń, w których uczestniczy użytkownik
+ * @see handleFetchPendingInvitations - Pobieranie oczekujących zaproszeń
+ * @see handleAcceptInvitation - Akceptowanie zaproszenia
+ * @see handleDeclineInvitation - Odrzucanie zaproszenia
+ * @see handleSearchUserByUsername - Wyszukiwanie użytkowników
+ * @see handleCheckUserHasVoted - Sprawdzanie, czy użytkownik oddał głos w głosowaniu
+ * @see handleFetchVoteVotes - Pobieranie głosów w głosowaniu
+ * @see handleFetchAllVoteResultsForEvent - Pobieranie wyników głosowań dla wydarzenia
+ * @see handleFetchVoteResultsEventUser - Pobieranie wyników głosowań dla wydarzenia w kontekście użytkownika
+ * @see handleCastAVote - Oddawanie głosu w głosowaniu
+ * @see handleCloseGeneralVote - Zamknięcie głosowania
+ * @see handleDeleteGeneralVote - Usuwanie głosowania
+ * @see handleRemoveFriend - Usuwanie znajomości
+ * @see handleAcceptFriendRequest - Akceptowanie prośby o znajomość
+ * @see handleFetchUserFriends - Pobieranie znajomych użytkownika
+ * @see handleSendFriendRequest - Wysyłanie prośby o znajomość
+ * @see handleMarkAllAsRead - Oznaczanie wszystkich powiadomień jako przeczytane
+ * @see handleMarkAsRead - Oznaczanie powiadomienia jako przeczytane
+ * @see handleFetchNotifications - Pobieranie powiadomień użytkownika
+ * @see handleDeleteNotification - Usuwanie powiadomienia
+ * @see handleDeleteAllNotifications - Usuwanie wszystkich powiadomień
+ * @see handleFetchEventsByUserId - Pobieranie wydarzeń powiązanych z użytkownikiem
+ */
 const serverActions = {
   handleCreateEventServerAction,
   handleJoinEventServerAction,

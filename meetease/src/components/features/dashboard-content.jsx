@@ -1,3 +1,27 @@
+/**
+ * @brief Komponent glowny dashboardu
+ *
+ * Komponent zawartości dashboardu, pozwala na wyświetlanie danych o wydarzeniach, zaproszeniach i znajomych.
+ *
+ * @returns {JSX.Element} Komponent zawartości dashboardu
+ * 
+ * @param {Object} user - Użytkownik
+ * @param {Object} logout - Funkcja do wylogowania (deprecated)
+ * @param {Object} serverActions - Funkcje serwera
+ * @param {Object} events - Wydarzenia
+ *
+ * @details
+ * - Funkcja pobiera dane użytkownika za pomocą useState.
+ * - Wyswietla liste wydarzeń, a takze przyciski do otwierania modalnych okien z zaproszeniami i znajomymi.
+ * 
+ * @todo Dodac automatyczne odswiezanie listy wydarzeń.
+ * 
+ * @see UpcomingEventsModal
+ * @see InvitationsModal
+ * @see FriendsListModal
+ * @see EventCard
+ * @see serverActions
+ */
 "use client";
 
 import { useState } from "react";

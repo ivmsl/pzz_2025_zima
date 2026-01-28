@@ -1,3 +1,22 @@
+/**
+ * @brief Strona główna aplikacji MeetEase
+ *
+ * Asynchroniczna funkcja komponentu strony głównej.
+ * Pobiera dane użytkownika oraz pozwala na logowanie i rejestrację.
+ *
+ * @returns {JSX.Element} Zawartość strony głównej — LoginComponent i RegisterComponent oraz modale logowania i rejestracji
+ *
+ * @details
+ * - Funkcja pobiera dane użytkownika za pomocą useState.
+ * - Przekazuje dane do komponentów LoginComponent i RegisterComponent.
+ * - Przekazuje dane do modali logowania i rejestracji.
+ *
+ * @see LoginComponent
+ * @see RegisterComponent
+ */
+
+
+
 "use client"
 
 import { useState } from "react"

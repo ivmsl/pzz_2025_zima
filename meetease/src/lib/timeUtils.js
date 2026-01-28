@@ -1,3 +1,21 @@
+/**
+ * @file timeUtils.js
+ * @brief Narzędzia do formatowania i walidacji daty i czasu
+ * 
+ * @exports formatDate - Formatowanie daty do formatu DD-MM-YYYY
+ * @exports formatTime - Formatowanie czasu do formatu HH:MM
+ * @exports validateDateFromDMY - Walidacja daty z formatu DD-MM-YYYY
+ * @exports dayTimeToTimestampTZ - Konwersja daty i czasu do timestamp z uwzględnieniem strefy czasowej
+ * @exports timestampTZToDayTime - Konwersja timestamp z uwzględnieniem strefy czasowej do daty i czasu
+ */
+
+
+/**
+ * Formatowanie daty do formatu DD-MM-YYYY
+ * 
+ * @param {string} dateString - Data do formatowania
+ * @returns {string} - Data w formacie DD-MM-YYYY
+ */
 export const formatDate = (dateString) => {
     if (!dateString) return "Brak daty"
     try {
@@ -12,6 +30,12 @@ export const formatDate = (dateString) => {
     }
   }
   
+  /**
+   * Formatowanie czasu do formatu HH:MM
+   * 
+   * @param {string} timeString - Czas do formatowania
+   * @returns {string} - Czas w formacie HH:MM
+   */
   export const formatTime = (timeString) => {
     if (!timeString) return ""
     // If time is in HH:MM format, return as is
@@ -22,7 +46,12 @@ export const formatDate = (dateString) => {
   }
 
 
-
+  /**
+   * Walidacja daty z formatu DD-MM-YYYY
+   * 
+   * @param {string} dateString - Data do walidacji
+   * @returns {boolean} - True jeśli data jest prawidłowa, false w przeciwnym razie
+   */
   export const validateDateFromDMY = (dateString) => {
     if (!dateString || dateString.length !== 10) {
       return false
@@ -52,14 +81,25 @@ export const formatDate = (dateString) => {
   }
 
 
+  /**
+   * Konwersja daty i czasu do timestamp z uwzględnieniem strefy czasowej
+   * 
+   * @param {string} date - Data do konwersji
+   * @param {string} hour - Czas do konwersji
+   * @returns {string} - Timestamp w formacie ISO
+   */
 export const dayTimeToTimestampTZ = (date, hour) => {
-  // const [day, month, year] = date.split('-').map(Number)
-  // const [h, m] = hour.split(':').map(Number)
-  // const dateObj = new Date(year, month - 1, day, h, m)
   const dateObj = new Date(`${date}T${hour}:00`);
   return dateObj.toISOString()
 }
 
+
+/**
+ * Konwersja timestamp z uwzględnieniem strefy czasowej do daty i czasu
+ * 
+ * @param {string} timestampTZ - Timestamp do konwersji
+ * @returns {Object} - Obiekt z polami date i time
+ */
 export const timestampTZToDayTime = (timestampTZ) => {
   const dateObj = new Date(timestampTZ);
 

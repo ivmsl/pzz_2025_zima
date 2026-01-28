@@ -1,3 +1,37 @@
+/**
+ * @file register.jsx
+ * @brief Komponent rejestracji użytkownika w aplikacji MeetEase
+ *
+ * Pełnoekranowy modal rejestracji umożliwiający utworzenie nowego konta. Wyświetla formularz
+ * z polami: nazwa użytkownika, e-mail, hasło i potwierdzenie hasła. Po pomyślnej rejestracji
+ * zamyka modal i przekierowuje użytkownika na dashboard.
+ *
+ * @component RegisterComponent
+ * @returns {JSX.Element} Modal z formularzem rejestracji
+ *
+ * @param {Object} props
+ * @param {Function} [props.onClose] - Opcjonalna funkcja wywoływana po zamknięciu modala
+ *                                    (np. po sukcesie lub kliknięciu przycisku ×)
+ *
+ * @state {string} username - Nazwa użytkownika (max 50 znaków)
+ * @state {string} email - Adres e-mail (max 50 znaków)
+ * @state {string} password - Hasło
+ * @state {string} confirmPassword - Potwierdzenie hasła
+ * @state {string} error - Komunikat błędu walidacji lub błędu Supabase
+ *
+ * @description
+ * Walidacja przed wysłaniem:
+ * - Długość nazwy użytkownika i e-maila ograniczona do MAX_FIELD_LENGTH (50).
+ * - Sprawdzenie zgodności hasła i potwierdzenia hasła.
+ * Rejestracja odbywa się przez Supabase Auth (signUp) z metadanymi username.
+ * W razie błędu wyświetlany jest komunikat; przy sukcesie wywoływane jest onClose
+ * i następuje przekierowanie na /dashboard.
+ *
+ * @see useRouter - Next.js (next/navigation) do przekierowania
+ * @see createClient - Klient Supabase (@/utils/supabase/client)
+ */
+
+
 "use client"
 
 import { useState } from "react"

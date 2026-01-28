@@ -1,11 +1,14 @@
+/**
+ * Narzędzia autentykacji: pobieranie zalogowanego użytkownika i klienta Supabase,
+ * wylogowanie (Server Action) oraz opcjonalna synchronizacja username z user_metadata do profiles.
+ */
 import { createClient } from "@/utils/supabase/server"
 import { redirect } from "next/navigation"
 
 /**
- * Gets the authenticated user and Supabase client.
- * Redirects to home page if user is not authenticated.
- * 
- * @returns {Promise<{supabase: SupabaseClient, user: User}>}
+ * Zwraca zalogowanego użytkownika i klienta Supabase. Przy braku sesji przekierowuje na stronę główną (/).
+ * Jeśli user.user_metadata.username jest ustawione, aktualizuje profil w tabeli profiles (username, email).
+ * @returns {Promise<{supabase: import('@supabase/supabase-js').SupabaseClient, user: import('@supabase/supabase-js').User}>}
  */
 export async function getAuthenticatedUser() {
     const supabase = await createClient()
@@ -36,9 +39,8 @@ export async function getAuthenticatedUser() {
 }
 
 /**
- * Creates a logout server action.
- * 
- * @returns {Promise<void>}
+ * Wylogowuje użytkownika (Server Action): wywołuje signOut na kliencie Supabase i przekierowuje na /.
+ * @returns {Promise<void>} - Nie zwraca (redirect przerywa wykonanie)
  */
 export async function logout() {
     "use server"

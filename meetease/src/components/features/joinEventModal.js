@@ -1,3 +1,20 @@
+/**
+ * @brief Komponent modalnego okna dołączania do wydarzenia
+ *
+ * Komponent modalnego okna dołączania do wydarzenia, pozwala na wprowadzenie kodu wydarzenia i dołączenie do wydarzenia.
+ *
+ * @returns {JSX.Element} Komponent modalnego okna dołączania do wydarzenia
+ * 
+ * @param {Object} user - Użytkownik
+ * @param {boolean} open - Czy jest otwarte
+ * @param {Function} onClose - Funkcja do zamknięcia modalnego okna
+ * @param {Function} onJoinEvent - Funkcja do dołączania do wydarzenia
+ *
+ * @see serverActions
+ */
+
+
+
 "use client"
 import { useState } from "react"
 import {

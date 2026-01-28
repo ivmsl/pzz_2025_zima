@@ -1,3 +1,26 @@
+/**
+
+ * @brief Komponent karty wydarzenia
+ *
+ * Komponent karty wydarzenia, pozwala na wyświetlanie danych o wydarzeniu w malym formacie.
+ *
+ * @returns {JSX.Element} Komponent karty wydarzenia
+ * 
+ * @param {Object} user - Użytkownik
+ * @param {Object} event - Wydarzenie
+ * @param {Object} serverActions - Funkcje serwera
+ *
+ * @details
+ * - jest wykorzystywany w EventDetailsModal.jsx
+ * - Funkcja pobiera dane użytkownika za pomocą useState.
+ * - Przekazuje dane do komponentu EventDetailsModal.
+ *
+ * @see EventDetailsModal
+ * @see formatDate
+ * @see formatTime
+ * @see serverActions
+ */
+
 "use client"
 
 import EventDetailsModal from "@/components/events/eventDetailsModal"

@@ -1,3 +1,35 @@
+/**
+ * @file upcoming-events-modal.jsx
+ * @brief Modal z listą nadchodzących wydarzeń użytkownika
+ *
+ * Dialog wyświetlający wydarzenia, w których użytkownik uczestniczy. Lista jest ładowana
+ * przy otwarciu modala (useEffect zależny od open) przez serverActions.handleFetchParticipatingEvents.
+ * Dla każdego wydarzenia renderowany jest EventCard; przy braku wydarzeń lub błędzie
+ * wyświetlany jest stosowny komunikat.
+ *
+ * @component UpcomingEventsModal
+ * @returns {JSX.Element} Dialog z nagłówkiem „Nadchodzące” i przewijalną listą EventCard
+ *
+ * @param {Object} props
+ * @param {Object} props.user - Obiekt użytkownika (np. z sesji)
+ * @param {string} [props.user.id] - Id użytkownika do pobrania wydarzeń
+ * @param {boolean} props.open - Czy modal jest otwarty
+ * @param {Function} props.onClose - Callback zamykający modal (przekazywany do Dialog onOpenChange)
+ * @param {Object} props.serverActions - Obiekt akcji serwerowych
+ * @param {Function} props.serverActions.handleFetchParticipatingEvents - Funkcja pobierająca wydarzenia użytkownika (id) → { success, events }
+ *
+ * @state {Array} events - Lista wydarzeń zwróconych przez handleFetchParticipatingEvents
+ * @state {boolean} loading - Stan ładowania (true podczas fetch)
+ *
+ * @description
+ * Przy open === true wywoływane jest loadEvents(), które ustawia loading, wywołuje
+ * serverActions.handleFetchParticipatingEvents(user.id) i zapisuje result.events (lub []).
+ * UI: nagłówek „Nadchodzące”, w treści — loader, „Brak nadchodzących wydarzeń” lub lista EventCard.
+ *
+ * @see EventCard - Karta pojedynczego wydarzenia (@/components/events/eventCard)
+ */
+
+
 "use client"
 
 import { useState, useEffect } from "react"

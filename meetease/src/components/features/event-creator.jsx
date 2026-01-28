@@ -1,3 +1,30 @@
+/**
+ * @brief Komponent tworzenia wydarzenia
+ *
+ * Komponent tworzenia wydarzenia, pozwala na tworzenie nowego wydarzenia.
+ *
+ * @returns {JSX.Element} Komponent tworzenia wydarzenia
+ * 
+ * @param {Object} user - Użytkownik
+ * @param {Function} onClose - Funkcja do zamknięcia modalnego okna
+ * @param {Function} onSubmit - Funkcja do przesłania formularza
+ * @param {Function} userSearchFn - Funkcja do wyszukiwania użytkowników
+ * @param {Object} event - Wydarzenie
+ * @param {boolean} isEditing - Czy jest to edycja wydarzenia
+ * @param {Object} participants - Uczestnicy wydarzenia
+ *
+ * @details
+ * - Funkcja pobiera dane użytkownika za pomocą useState.
+ * - Przekazuje dane do komponentu GeneralVote.
+ * - Jezeli event i participants = null, to tworzy nowe wydarzenie.
+ * - Jezeli event i participants != null, to edytuje istniejące wydarzenie.
+ * 
+ * @see GeneralVote
+ * @see serverActions
+ */
+
+
+
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";

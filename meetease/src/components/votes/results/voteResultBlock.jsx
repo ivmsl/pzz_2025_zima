@@ -1,3 +1,36 @@
+/**
+ * @file voteResultBlock.jsx
+ * @brief Blok wyświetlający jedno głosowanie z opcjami i wynikami
+ *
+ * Renderuje pojedyncze głosowanie: pytanie, typ (czas / lokalizacja / ogólne), deadline,
+ * listę opcji jako przyciski. Użytkownik może oddać głos przez onCastVote (jeśli jeszcze
+ * nie głosował i nie minął deadline). Po oddaniu głosu lub po deadlinie przyciski są
+ * nieaktywne i pokazywany jest pasek procentowy oraz ewentualnie „Twój wybór”.
+ *
+ * @component VoteResultBlock
+ * @returns {JSX.Element} Karta z nagłówkiem głosowania i listą opcji (Button)
+ *
+ * @param {Object} props
+ * @param {Object} props.voteDescriptor - Opis głosowania
+ * @param {string} props.voteDescriptor.id - Id głosowania
+ * @param {string} props.voteDescriptor.question - Treść pytania
+ * @param {string} props.voteDescriptor.type - Typ: "time" | "location" | inny (ogólne)
+ * @param {string|null} [props.voteDescriptor.deadline] - Termin zakończenia (ISO string)
+ * @param {Array<Object>} props.results - Wyniki per opcja: { option_id, option_text, total_votes }
+ * @param {string|number|null} props.userVote - Id opcji, na którą użytkownik oddał głos (null = brak)
+ * @param {Function} props.onCastVote - Callback oddania głosu: (voteId, optionId) => Promise
+ *
+ * @description
+ * formatTimeOption(optionText) dzieli "date|start|end" i formatuje dla type === "time".
+ * calculatePercentage(optionId) liczy procent głosów na daną opcję. checkDeadline() zwraca
+ * true, gdy deadline minął. handleCastVote(optionId) wywołuje onCastVote(voteDescriptor.id, optionId).
+ * Przyciski są disabled gdy userVote jest ustawione; gradient procentowy i etykieta „Twój wybór”
+ * pokazywane gdy userVote ustawione lub po deadlinie.
+ *
+ */
+
+
+
 import { Button } from "@/components/ui/button"
 
 export default function VoteResultBlock({ voteDescriptor, results, userVote, onCastVote }) {

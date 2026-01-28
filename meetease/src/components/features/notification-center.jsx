@@ -1,3 +1,22 @@
+/**
+ * @brief Centrum powiadomień
+ *
+ * Komponent centrum powiadomień pozwala na wyświetlanie listy powiadomień i ich odczytywania.
+ *
+ * @returns {JSX.Element} Komponent centrum powiadomień
+ * 
+ * @param {Object} userId - ID użytkownika
+ * @param {Object} serverActions - Funkcje serwera
+ *
+ * @details
+ * - Funkcja pobiera dane użytkownika za pomocą useState.
+ * - Przekazuje dane do komponentu DropdownMenu.
+ * 
+ * @see serverActions
+ */
+
+
+
 "use client";
 
 import { useState, useEffect } from "react";

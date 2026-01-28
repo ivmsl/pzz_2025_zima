@@ -1,3 +1,41 @@
+/**
+ * @file settings-content.jsx
+ * @brief Komponent strony ustawień konta użytkownika w aplikacji MeetEase
+ *
+ * Strona ustawień wyświetla dane użytkownika (e-mail, nazwa użytkownika) oraz umożliwia
+ * edycję nazwy użytkownika i zmianę hasła przez osobne dialogi. Po zapisaniu zmian
+ * odświeża stronę (router.refresh()) i pokazuje komunikaty sukcesu lub błędu.
+ *
+ * @component SettingsContent
+ * @returns {JSX.Element} Widok ustawień z sekcją danych użytkownika i przyciskami akcji
+ *
+ * @param {Object} props
+ * @param {Object} props.user - Obiekt użytkownika z sesji (np. z Supabase Auth)
+ * @param {string} [props.user.email] - Adres e-mail użytkownika
+ * @param {string} [props.user.username] - Nazwa użytkownika (metadata)
+ *
+ * @state {boolean} usernameDialogOpen - Czy dialog zmiany nazwy użytkownika jest otwarty
+ * @state {boolean} passwordDialogOpen - Czy dialog zmiany hasła jest otwarty
+ * @state {string} usernameValue - Aktualna/nowa wartość nazwy użytkownika w formularzu
+ * @state {Object} passwordForm - Pola formularza hasła: current, next, confirm
+ * @state {Object} loading - Stan ładowania: { username: boolean, password: boolean }
+ * @state {Object|null} feedback - Komunikat globalny: { type: "success"|"error", message: string }
+ * @state {Object|null} passwordDialogFeedback - Komunikat w dialogu hasła (ten sam format)
+ *
+ * @description
+ * Zmiana nazwy: walidacja (niepusta), updateUsernameAction (server action), przy sukcesie
+ * zamknięcie dialogu i router.refresh(). Zmiana hasła: walidacja (nowe min. 6 znaków,
+ * zgodność nowe/potwierdzenie), signInWithPassword (weryfikacja bieżącego), updateUser
+ * (Supabase), przy sukcesie zamknięcie dialogu i czyszczenie pól. Link „Zamknij” prowadzi
+ * do /dashboard.
+ *
+ * @see createClient - Klient Supabase (@/utils/supabase/client)
+ * @see updateUsernameAction - Server action (@/app/settings/actions)
+ */
+
+
+
+
 "use client"
 
 import { useState } from "react"

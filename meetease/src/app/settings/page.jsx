@@ -1,3 +1,20 @@
+/**
+ * @brief Strona ustawień użytkownika
+ *
+ * Asynchroniczna funkcja komponentu strony ustawień użytkownika.
+ * Pobiera uwierzytelnionego użytkownika oraz powiązane z nim profile, pozwala zmienic nazwe uzytkownika i haslo.
+ *
+ * @returns {JSX.Element} Zawartość strony ustawień użytkownika — SettingsContent
+ *
+ * @details
+ * - Funkcja pobiera dane użytkownika za pomocą getAuthenticatedUser.
+ * - Pobiera profile użytkownika przez supabase.
+ * - Przekazuje dane do komponentu SettingsContent.
+ *
+ * @see getAuthenticatedUser
+ * @see SettingsContent
+ */
+
 import SettingsContent from "@/components/features/settings-content"
 import { getAuthenticatedUser } from "@/utils/auth"
 

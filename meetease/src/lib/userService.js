@@ -2,9 +2,10 @@ import { getAuthenticatedUser } from "@/utils/auth"
 import { createClient } from "@/utils/supabase/server"
 
 /**
- * Fetch pending invitations for a user
- * @param {string} userId - The user ID (receiver)
- * @returns {Promise<Array>} - Array of invitation objects with event and sender details
+ * Pobiera oczekujące zaproszenia do wydarzeń dla zalogowanego użytkownika (odbiorcy).
+ * Wewnętrznie: pobiera z invites rekordy receiver_id = user.id, status = "pending",
+ * dla każdego dopisuje dane wydarzenia (events), profil nadawcy (profiles) i nazwę twórcy wydarzenia.
+ * @returns {Promise<Array>} - Tablica obiektów zaproszeń z polami event, sender, creatorUsername
  */
 export async function fetchPendingInvitations() {
     const { supabase, user } = await getAuthenticatedUser()
@@ -63,7 +64,13 @@ export async function fetchPendingInvitations() {
     return invitationsWithDetails
 }
 
-
+/**
+ * Akceptuje zaproszenie do wydarzenia: ustawia status zaproszenia na "accepted"
+ * i dodaje użytkownika do users_events (jeśli jeszcze tam nie ma).
+ * @param {string} inviteId - Identyfikator zaproszenia
+ * @param {string} eventId - Identyfikator wydarzenia
+ * @returns {Promise<{success: boolean, error: string|null}>}
+ */
 export async function acceptPendingInvitation(inviteId, eventId) {
     const { supabase, user } = await getAuthenticatedUser()
     
@@ -104,7 +111,12 @@ export async function acceptPendingInvitation(inviteId, eventId) {
     return { success: true, error: null }
 }
 
-
+/**
+ * Odrzuca zaproszenie do wydarzenia: ustawia status zaproszenia na "declined".
+ * Nie dodaje użytkownika do uczestników wydarzenia.
+ * @param {string} inviteId - Identyfikator zaproszenia do odrzucenia
+ * @returns {Promise<{success: boolean, error: string|null}>}
+ */
 export async function declinePendingInvitation(inviteId) {
     const { supabase, _ } = await getAuthenticatedUser()
     const { error } = await supabase
@@ -120,6 +132,11 @@ export async function declinePendingInvitation(inviteId) {
 
 }
 
+/**
+ * Anuluje zaproszenie (np. przez twórcę wydarzenia): ustawia status zaproszenia na "canceled".
+ * @param {string} inviteId - Identyfikator zaproszenia do anulowania
+ * @returns {Promise<{success: boolean, error: string|null}>}
+ */
 export async function cacnelPendingInvitation(inviteId) {
     const { supabase, _ } = await getAuthenticatedUser()
     const { error } = await supabase
@@ -134,7 +151,12 @@ export async function cacnelPendingInvitation(inviteId) {
     return { success: true, error: null }
 }
 
-
+/**
+ * Wyszukuje użytkowników po nazwie użytkownika (username, dopasowanie częściowe, bez rozróżniania wielkości liter).
+ * Pusta lub tylko białe znaki fraza zwraca []. Maksymalnie 10 wyników z tabeli profiles.
+ * @param {string} searchQuery - Fraza do wyszukania (np. fragment username)
+ * @returns {Promise<Array>} - Tablica obiektów użytkowników (id, username, email) lub [] przy błędzie; rzuca przy błędzie zapytania
+ */
 export async function searchUsersByUsername(searchQuery) {
     if (!searchQuery || searchQuery.trim().length < 1) {
         return []
@@ -159,6 +181,11 @@ export async function searchUsersByUsername(searchQuery) {
     return users || []
 }
 
+/**
+ * Pobiera listę użytkowników z profili (id, username, email), posortowaną po username rosnąco.
+ * Ograniczenie do 100 rekordów. Przy błędzie zwraca pustą tablicę.
+ * @returns {Promise<Array>} - Tablica obiektów użytkowników lub []
+ */
 export async function fetchAllUsers() {
     const supabase = await createClient()
     

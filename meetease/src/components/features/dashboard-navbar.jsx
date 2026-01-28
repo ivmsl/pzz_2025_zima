@@ -1,3 +1,27 @@
+/**
+
+ * @brief Komponent nawigacji dashboardu
+ *
+ * Komponent nawigacji dashboardu, pozwala na wyświetlanie nawigacji dashboardu.
+ *
+ * @returns {JSX.Element} Komponent nawigacji dashboardu
+ * 
+ * @param {Object} user - Użytkownik
+ * @param {Object} logout - Funkcja do wylogowania
+ * @param {Object} serverActions - Funkcje serwera
+ *
+ * @details
+ * - Funkcja pobiera dane użytkownika za pomocą useState.
+ * - Przekazuje dane do komponentu EventCreatorComponent.
+ * - Przekazuje dane do komponentu JoinEventModal.
+ * - Przekazuje dane do komponentu NotificationCenter.
+ *
+ * @see EventCreatorComponent
+ * @see JoinEventModal
+ * @see NotificationCenter
+ * @see serverActions
+ */
+
 "use client";
 
 import { useState } from "react";

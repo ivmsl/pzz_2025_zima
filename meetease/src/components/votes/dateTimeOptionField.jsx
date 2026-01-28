@@ -1,3 +1,23 @@
+/**
+ * @file dateTimeOptionField.jsx
+ * @brief Pole opcji czasu w głosowaniu
+ *
+ * Renderuje pole opcji czasu w głosowaniu: data i czas startu/końca. Umożliwia edycję
+ * daty i czasu oraz usuwanie opcji.
+ *
+ * @returns {JSX.Element} Pole opcji czasu w głosowaniu
+ * 
+ * @param {Object} opt - Opcja czasu
+ * @param {number} idx - Indeks opcji
+ * @param {Function} setOptions - Funkcja do ustawiania opcji
+ * @param {boolean} delDisabled - Czy przycisk usuwania jest disabled
+ * @param {boolean} disabled - Czy pole jest disabled
+ *
+ * @details
+ * - Funkcja pobiera dane użytkownika za pomocą useState.
+ */
+
+
 import { Button } from "@/components/ui/button"
 import { Trash2 } from "lucide-react"
 

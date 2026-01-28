@@ -1,74 +1,74 @@
-# Votes API Documentation
+# Dokumentacja API głosowań
 
-This document describes the complete Votes API system used in the MeatEase application. It covers vote data structures, functions, and how vote results are processed and displayed.
-
----
-
-## Table of Contents
-
-1. [Vote Structures](#vote-structures)
-2. [Vote Functions](#vote-functions)
-3. [Vote Results and Display](#vote-results-and-display)
+Ten dokument opisuje kompletny system API głosowań używany w aplikacji MeatEase. Obejmuje struktury danych głosów, funkcje oraz sposób przetwarzania i wyświetlania wyników głosowań.
 
 ---
 
-## Vote Structures
+## Spis treści
 
-### Vote Descriptor
+1. [Struktury głosów](#struktury-głosów)
+2. [Funkcje głosowań](#funkcje-głosowań)
+3. [Wyniki głosowań i wyświetlanie](#wyniki-głosowań-i-wyświetlanie)
 
-A **Vote Descriptor** is the core metadata object that defines a vote. It contains all the information about what is being voted on.
+---
 
-**Structure:**
+## Struktury głosów
+
+### Deskryptor głosu
+
+**Deskryptor głosu** to podstawowy obiekt metadanych definiujący głosowanie. Zawiera wszystkie informacje o tym, na co się głosuje.
+
+**Struktura:**
 ```javascript
 {
-  id: string,                    // Unique vote identifier (UUID)
-  event_id: string,              // ID of the event this vote belongs to
-  type: string,                  // Vote type: "time" | "location" | "general"
-  question: string,              // The question/prompt for the vote (e.g., "Gdzie idziemy na kolację?")
-  deadline: string,              // Deadline date in YYYY-MM-DD format
-  deadlineTime: string           // Deadline time in HH:MM format
+  id: string,                    // Unikalny identyfikator głosu (UUID)
+  event_id: string,              // ID wydarzenia, do którego należy głos
+  type: string,                  // Typ głosu: "time" | "location" | "general"
+  question: string,              // Pytanie/polecenie głosu (np. "Gdzie idziemy na kolację?")
+  deadline: string,              // Termin w formacie YYYY-MM-DD
+  deadlineTime: string           // Godzina terminu w formacie HH:MM
 }
 ```
 
-**Notes:**
-- The `deadline` and `deadlineTime` are stored separately in the frontend but combined into a single ISO timestamp when saved to the database
-- The `type` field determines how options are structured:
-  - `"time"`: Uses timed options (date + time ranges)
-  - `"location"`: Uses text options (location names)
-  - `"general"`: Uses text options (any general voting question)
+**Uwagi:**
+- Pola `deadline` i `deadlineTime` są przechowywane osobno w interfejsie, ale łączone w jeden znacznik czasu ISO przy zapisie do bazy danych
+- Pole `type` określa strukturę opcji:
+  - `"time"`: Używa opcji czasowych (data + zakresy godzin)
+  - `"location"`: Używa opcji tekstowych (nazwy miejsc)
+  - `"general"`: Używa opcji tekstowych (dowolne pytanie głosowania)
 
 ---
 
-### Options
+### Opcje
 
-**Options** are the choices available in a vote. The structure depends on the vote type.
+**Opcje** to wybory dostępne w głosowaniu. Struktura zależy od typu głosu.
 
-#### Text Options (for "general" and "location" votes)
+#### Opcje tekstowe (dla głosów „general” i „location”)
 
-Simple array of strings representing the choices:
+Prosta tablica ciągów reprezentujących wybory:
 
 ```javascript
 options: string[]
-// Example: ["Restauracja A", "Restauracja B", "Restauracja C"]
+// Przykład: ["Restauracja A", "Restauracja B", "Restauracja C"]
 ```
 
-**Storage:**
-- Each option is stored in the `vote_options` table with `option_text` field
-- Options are plain text strings
+**Przechowywanie:**
+- Każda opcja jest zapisywana w tabeli `vote_options` w polu `option_text`
+- Opcje to zwykłe ciągi tekstowe
 
-#### Timed Options (for "time" votes)
+#### Opcje czasowe (dla głosów „time”)
 
-Array of objects representing date and time ranges:
+Tablica obiektów reprezentujących daty i zakresy godzin:
 
 ```javascript
 timedOption: Array<{
-  date: string,      // Date in YYYY-MM-DD format
-  start: string,    // Start time in HH:MM format
-  end: string       // End time in HH:MM format
+  date: string,      // Data w formacie YYYY-MM-DD
+  start: string,    // Godzina rozpoczęcia w formacie HH:MM
+  end: string       // Godzina zakończenia w formacie HH:MM
 }>
 ```
 
-**Example:**
+**Przykład:**
 ```javascript
 timedOption: [
   { date: "2025-06-15", start: "18:00", end: "20:00" },
@@ -76,17 +76,17 @@ timedOption: [
 ]
 ```
 
-**Storage:**
-- Timed options are stored as a single string in the format: `"YYYY-MM-DD|HH:MM|HH:MM"`
-- Example: `"2025-06-15|18:00|20:00"`
-- The pipe character (`|`) is used as a delimiter
-- When fetched from the database, they are parsed back into the object format using regex: `/^\d{4}-\d{2}-\d{2}\|\d{2}:\d{2}\|\d{2}:\d{2}$/`
+**Przechowywanie:**
+- Opcje czasowe są zapisywane jako jeden ciąg w formacie: `"YYYY-MM-DD|HH:MM|HH:MM"`
+- Przykład: `"2025-06-15|18:00|20:00"`
+- Znak potoku (`|`) służy jako separator
+- Przy odczycie z bazy są parsowane z powrotem do formatu obiektu za pomocą wyrażenia regularnego: `/^\d{4}-\d{2}-\d{2}\|\d{2}:\d{2}\|\d{2}:\d{2}$/`
 
 ---
 
-### Complete Vote Object Structure
+### Pełna struktura obiektu głosu
 
-When creating or editing a vote, the complete structure is:
+Przy tworzeniu lub edycji głosu pełna struktura wygląda następująco:
 
 ```javascript
 {
@@ -98,8 +98,8 @@ When creating or editing a vote, the complete structure is:
     deadline: string,        // YYYY-MM-DD
     deadlineTime: string     // HH:MM
   },
-  options: string[],         // For "general" and "location" types
-  timedOption: Array<{      // For "time" type
+  options: string[],         // Dla typów "general" i "location"
+  timedOption: Array<{      // Dla typu "time"
     date: string,
     start: string,
     end: string
@@ -107,36 +107,36 @@ When creating or editing a vote, the complete structure is:
 }
 ```
 
-**Important:**
-- For `"time"` votes: Use `timedOption`, `options` should be empty
-- For `"location"` and `"general"` votes: Use `options`, `timedOption` should be empty
-- At least 2 options/timed options are required for a valid vote
+**Ważne:**
+- Dla głosów `"time"`: używaj `timedOption`, `options` powinno być puste
+- Dla głosów `"location"` i `"general"`: używaj `options`, `timedOption` powinno być puste
+- Do poprawnego głosu wymagane są co najmniej 2 opcje / opcje czasowe
 
 ---
 
-## Vote Functions
+## Funkcje głosowań
 
-All vote functions are located in `meetease/src/lib/voteService.js` and are server-side functions (marked with `"use server"`).
+Wszystkie funkcje głosowań znajdują się w pliku `meetease/src/lib/voteService.js` i są funkcjami serwerowymi (oznaczonymi `"use server"`).
 
 ### `registerVote(voteData, eventId)`
 
-Registers vote objects during event creation.
+Rejestruje obiekty głosów podczas tworzenia wydarzenia.
 
-**Parameters:**
-- `voteData` (Object): Vote data object with structure:
+**Parametry:**
+- `voteData` (Object): Obiekt danych głosu o strukturze:
   ```javascript
   {
-    time: VoteObject | null,           // Optional time vote
-    location: VoteObject | null,        // Optional location vote
-    general: VoteObject[] | null        // Optional array of general votes
+    time: VoteObject | null,           // Opcjonalny głos czasowy
+    location: VoteObject | null,        // Opcjonalny głos lokalizacyjny
+    general: VoteObject[] | null        // Opcjonalna tablica głosów ogólnych
   }
   ```
-- `eventId` (string): The ID of the event to associate votes with
+- `eventId` (string): ID wydarzenia, z którym powiązać głosy
 
-**Returns:**
-- `Promise<void>` - Resolves on success, throws error on failure
+**Zwraca:**
+- `Promise<void>` — rozwiązuje się przy sukcesie, rzuca błąd przy niepowodzeniu
 
-**Usage:**
+**Użycie:**
 ```javascript
 await registerVote({
   time: {
@@ -159,32 +159,32 @@ await registerVote({
 }, eventId)
 ```
 
-**Internal Process:**
-1. Creates vote records in the `votes` table
-2. Converts deadline date+time to ISO timestamp using `dayTimeToTimestampTZ()`
-3. For timed options: Converts to pipe-delimited string format (`YYYY-MM-DD|HH:MM|HH:MM`)
-4. Inserts options into `vote_options` table
+**Proces wewnętrzny:**
+1. Tworzy rekordy głosów w tabeli `votes`
+2. Konwertuje datę i godzinę terminu na znacznik czasu ISO za pomocą `dayTimeToTimestampTZ()`
+3. Dla opcji czasowych: konwertuje do formatu ciągu z separatorem potoku (`YYYY-MM-DD|HH:MM|HH:MM`)
+4. Wstawia opcje do tabeli `vote_options`
 
 ---
 
 ### `fetchEventVotes(eventId)`
 
-Fetches all votes for a specific event, organized by type.
+Pobiera wszystkie głosy dla danego wydarzenia, pogrupowane według typu.
 
-**Parameters:**
-- `eventId` (string): The ID of the event
+**Parametry:**
+- `eventId` (string): ID wydarzenia
 
-**Returns:**
-- `Promise<Object>` - Object with votes organized by type:
+**Zwraca:**
+- `Promise<Object>` — obiekt z głosami pogrupowanymi według typu:
   ```javascript
   {
-    time: Array<VoteObject>,      // Array of time votes
-    location: Array<VoteObject>,   // Array of location votes
-    general: Array<VoteObject>     // Array of general votes
+    time: Array<VoteObject>,      // Tablica głosów czasowych
+    location: Array<VoteObject>,   // Tablica głosów lokalizacyjnych
+    general: Array<VoteObject>     // Tablica głosów ogólnych
   }
   ```
 
-**VoteObject Structure (returned):**
+**Struktura VoteObject (zwracana):**
 ```javascript
 {
   voteDescriptor: {
@@ -192,64 +192,64 @@ Fetches all votes for a specific event, organized by type.
     event_id: string,
     type: string,
     question: string,
-    deadline: string,        // Converted back from timestamp to YYYY-MM-DD
-    deadlineTime: string      // Converted back from timestamp to HH:MM
+    deadline: string,        // Konwertowane z powrotem ze znacznika czasu na YYYY-MM-DD
+    deadlineTime: string      // Konwertowane z powrotem ze znacznika czasu na HH:MM
   },
-  timedOptions: Array<{      // Parsed from pipe-delimited strings
+  timedOptions: Array<{      // Parsowane z ciągów z separatorem potoku
     date: string,
     start: string,
     end: string
   }>,
-  options: string[]          // Plain text options
+  options: string[]          // Opcje tekstowe
 }
 ```
 
-**Internal Process:**
-1. Fetches all vote descriptors for the event
-2. Converts deadline timestamp back to date+time using `timestampTZToDayTime()`
-3. Fetches options for each vote
-4. For time votes: Parses pipe-delimited strings back to objects
-5. Organizes votes by type
+**Proces wewnętrzny:**
+1. Pobiera wszystkie deskryptory głosów dla wydarzenia
+2. Konwertuje znacznik czasu terminu z powrotem na datę i godzinę za pomocą `timestampTZToDayTime()`
+3. Pobiera opcje dla każdego głosu
+4. Dla głosów czasowych: parsuje ciągi z separatorem potoku z powrotem do obiektów
+5. Grupuje głosy według typu
 
 ---
 
 ### `castAVote(voteId, optionId, userId)`
 
-Casts a vote for a specific option.
+Oddaje głos na wybraną opcję.
 
-**Parameters:**
-- `voteId` (string): The ID of the vote
-- `optionId` (string): The ID of the option being voted for
-- `userId` (string): The ID of the user casting the vote
+**Parametry:**
+- `voteId` (string): ID głosu
+- `optionId` (string): ID opcji, na którą głosowano
+- `userId` (string): ID użytkownika oddającego głos
 
-**Returns:**
-- `Promise<Object>` - The created user vote record:
+**Zwraca:**
+- `Promise<Object>` — utworzony rekord głosu użytkownika:
   ```javascript
   {
     user_id: string,
     vote_option_id: string,
-    // ... other fields
+    // ... inne pola
   }
   ```
 
-**Validation:**
-- Checks if user can vote (must be event creator or participant)
-- Throws error if user cannot vote
+**Walidacja:**
+- Sprawdza, czy użytkownik może głosować (musi być twórcą wydarzenia lub uczestnikiem)
+- Rzuca błąd, jeśli użytkownik nie może głosować
 
-**Note:** This function does NOT prevent duplicate votes. The actual vote casting logic in `serverActions.js` (`handleCastGeneralVote`) handles removing previous votes before inserting a new one.
+**Uwaga:** Ta funkcja nie zapobiega wielokrotnemu głosowaniu. Logika oddawania głosu w `serverActions.js` (`handleCastGeneralVote`) usuwa poprzednie głosy przed wstawieniem nowego.
 
 ---
 
 ### `fetchVoteResultsEventUser(eventId, userId)`
 
-Fetches vote results for an event, including the user's own votes.
+Pobiera wyniki głosowań dla wydarzenia wraz z głosami danego użytkownika.
 
-**Parameters:**
-- `eventId` (string): The ID of the event
-- `userId` (string): The ID of the user
+**Parametry:**
+- `eventId` (string): ID wydarzenia
+- `userId` (string): ID użytkownika
 
-**Returns:**
-- `Promise<Array>` - Array of vote objects with results:
+**Zwraca:**
+- `Promise<Array>` — tablica obiektów głosów z wynikami:
   ```javascript
   [
     {
@@ -267,55 +267,55 @@ Fetches vote results for an event, including the user's own votes.
           option_text: string,
           total_votes: number
         },
-        // ... more results
+        // ... więcej wyników
       ],
-      userVote: string | null  // ID of the option the user voted for, or null
+      userVote: string | null  // ID opcji, na którą głosował użytkownik, lub null
     },
-    // ... more votes
+    // ... więcej głosów
   ]
   ```
 
-**Internal Process:**
-1. Fetches all vote descriptors for the event
-2. Fetches vote results in bulk (from `vote_results` view/table)
-3. For each vote, checks if the user has voted
-4. Returns combined structure with results and user's vote
+**Proces wewnętrzny:**
+1. Pobiera wszystkie deskryptory głosów dla wydarzenia
+2. Pobiera wyniki głosowań zbiorczo (z widoku/tabeli `vote_results`)
+3. Dla każdego głosu sprawdza, czy użytkownik oddał głos
+4. Zwraca połączoną strukturę z wynikami i głosem użytkownika
 
-**Usage in Components:**
-This is the primary function used by `EventVotings` component to display votes with results.
+**Użycie w komponentach:**
+To główna funkcja używana przez komponent `EventVotings` do wyświetlania głosów z wynikami.
 
 ---
 
 ### `getUserVoteByVoteID(userId, voteId)`
 
-Gets the user's vote for a specific vote.
+Pobiera głos użytkownika dla danego głosu.
 
-**Parameters:**
-- `userId` (string): The ID of the user
-- `voteId` (string): The ID of the vote
+**Parametry:**
+- `userId` (string): ID użytkownika
+- `voteId` (string): ID głosu
 
-**Returns:**
-- `Promise<Object | null>` - User's vote information:
+**Zwraca:**
+- `Promise<Object | null>` — informacje o głosie użytkownika:
   ```javascript
   {
-    id: string,           // Option ID the user voted for
-    voteId: string,       // Vote ID
-    user: string          // User ID
+    id: string,           // ID opcji, na którą głosował użytkownik
+    voteId: string,       // ID głosu
+    user: string          // ID użytkownika
   }
   ```
-  Or `null` if the user hasn't voted
+  Lub `null`, jeśli użytkownik nie oddał głosu
 
 ---
 
 ### `fetchVoteVotes(voteId)`
 
-Fetches vote results for a specific vote.
+Pobiera wyniki głosowania dla danego głosu.
 
-**Parameters:**
-- `voteId` (string): The ID of the vote
+**Parametry:**
+- `voteId` (string): ID głosu
 
-**Returns:**
-- `Promise<Array>` - Array of vote result objects:
+**Zwraca:**
+- `Promise<Array>` — tablica obiektów wyników głosowania:
   ```javascript
   [
     {
@@ -323,83 +323,83 @@ Fetches vote results for a specific vote.
       option_id: string,
       option_text: string,
       total_votes: number,
-      question: string,      // From the vote descriptor
-      // ... other fields
+      question: string,      // Z deskryptora głosu
+      // ... inne pola
     },
-    // ... more results
+    // ... więcej wyników
   ]
   ```
 
-**Note:** This function queries the `vote_results` table/view which contains aggregated vote counts.
+**Uwaga:** Ta funkcja odpytywuje tabelę/widok `vote_results`, który zawiera zagregowane liczby głosów.
 
 ---
 
 ### `fetchVotedVotesForEvent(eventId)`
 
-Fetches all votes for an event that have results (i.e., have been voted on).
+Pobiera wszystkie głosy wydarzenia, które mają wyniki (tj. na które oddano głosy).
 
-**Parameters:**
-- `eventId` (string): The ID of the event
+**Parametry:**
+- `eventId` (string): ID wydarzenia
 
-**Returns:**
-- `Promise<Array>` - Array of votes with results:
+**Zwraca:**
+- `Promise<Array>` — tablica głosów z wynikami:
   ```javascript
   [
     {
-      id: string,              // Vote ID
-      question: string,         // Vote question
-      results: Array<{         // Vote results
+      id: string,              // ID głosu
+      question: string,         // Pytanie głosu
+      results: Array<{         // Wyniki głosu
         option_id: string,
         option_text: string,
         total_votes: number,
-        // ... other fields
+        // ... inne pola
       }>
     },
-    // ... more votes
+    // ... więcej głosów
   ]
   ```
 
 ---
 
-## Vote Results and Display
+## Wyniki głosowań i wyświetlanie
 
-### Vote Results Structure
+### Struktura wyników głosowania
 
-Vote results are fetched from the `vote_results` database view/table and have the following structure:
+Wyniki głosowań są pobierane z widoku/tabeli bazy danych `vote_results` i mają następującą strukturę:
 
 ```javascript
 {
-  option_id: string,        // ID of the vote option
-  option_text: string,      // Text of the option (or pipe-delimited string for time votes)
-  total_votes: number       // Number of votes cast for this option
+  option_id: string,        // ID opcji głosu
+  option_text: string,      // Tekst opcji (lub ciąg z separatorem potoku dla głosów czasowych)
+  total_votes: number       // Liczba głosów oddanych na tę opcję
 }
 ```
 
-**For Time Votes:**
-- `option_text` contains the pipe-delimited format: `"YYYY-MM-DD|HH:MM|HH:MM"`
-- Must be parsed for display
+**Dla głosów czasowych:**
+- `option_text` zawiera format z separatorem potoku: `"YYYY-MM-DD|HH:MM|HH:MM"`
+- Musi być sparsowany do wyświetlenia
 
 ---
 
-### EventVotings Component
+### Komponent EventVotings
 
-**Location:** `meetease/src/components/events/event-votings.jsx`
+**Lokalizacja:** `meetease/src/components/events/event-votings.jsx`
 
 **Props:**
 ```javascript
 {
-  user: Object,                    // Current user object
-  event: Object,                   // Event object
-  fetchEventVotes: Function,       // Function to fetch votes (calls handleFetchVoteResultsEventUser)
-  castVote: Function,              // Function to cast a vote
-  closeVote: Function,             // Function to close a vote (creator only)
-  deleteVote: Function             // Function to delete a vote (creator only)
+  user: Object,                    // Obiekt bieżącego użytkownika
+  event: Object,                   // Obiekt wydarzenia
+  fetchEventVotes: Function,       // Funkcja pobierająca głosy (wywołuje handleFetchVoteResultsEventUser)
+  castVote: Function,              // Funkcja oddawania głosu
+  closeVote: Function,             // Funkcja zamykania głosu (tylko twórca)
+  deleteVote: Function             // Funkcja usuwania głosu (tylko twórca)
 }
 ```
 
-**Expected Data Structure:**
+**Oczekiwana struktura danych:**
 
-The component expects `fetchEventVotes` to return:
+Komponent oczekuje, że `fetchEventVotes` zwróci:
 ```javascript
 {
   success: boolean,
@@ -420,25 +420,25 @@ The component expects `fetchEventVotes` to return:
           total_votes: number
         }
       ],
-      userVote: string | null    // Option ID the user voted for, or null
+      userVote: string | null    // ID opcji, na którą głosował użytkownik, lub null
     }
   ],
   error: string | null
 }
 ```
 
-**How It Works:**
+**Działanie:**
 
-1. **Loading:** Calls `fetchEventVotes(event.id, user.id)` on mount
-2. **Display:** Maps over `voteResults` array and renders `VoteResultBlock` for each vote
-3. **Voting:** When user clicks an option, calls `castVote(voteId, optionId, user.id)`
-4. **Refresh:** After voting, reloads votes to show updated results
+1. **Ładowanie:** Przy montowaniu wywołuje `fetchEventVotes(event.id, user.id)`
+2. **Wyświetlanie:** Iteruje po tablicy `voteResults` i renderuje `VoteResultBlock` dla każdego głosu
+3. **Głosowanie:** Po kliknięciu opcji przez użytkownika wywołuje `castVote(voteId, optionId, user.id)`
+4. **Odświeżanie:** Po oddaniu głosu ponownie ładuje głosy, aby pokazać zaktualizowane wyniki
 
 ---
 
-### VoteResultBlock Component
+### Komponent VoteResultBlock
 
-**Location:** `meetease/src/components/votes/results/voteResultBlock.jsx`
+**Lokalizacja:** `meetease/src/components/votes/results/voteResultBlock.jsx`
 
 **Props:**
 ```javascript
@@ -457,19 +457,19 @@ The component expects `fetchEventVotes` to return:
       total_votes: number
     }
   ],
-  userVote: string | null,      // Option ID user voted for
+  userVote: string | null,      // ID opcji, na którą głosował użytkownik
   onCastVote: Function          // Callback: (voteId, optionId) => Promise<void>
 }
 ```
 
-**How It Works:**
+**Działanie:**
 
-1. **Display:** Shows vote question, type description, and deadline
-2. **Options:** Maps over `results` array to display each option
-3. **Voting:**
-   - If `userVote` is `null`: Options are clickable buttons
-   - If `userVote` is set: Options are disabled and show percentage bars
-4. **Percentage Calculation:**
+1. **Wyświetlanie:** Pokazuje pytanie głosu, opis typu i termin
+2. **Opcje:** Iteruje po tablicy `results`, aby wyświetlić każdą opcję
+3. **Głosowanie:**
+   - Gdy `userVote` jest `null`: opcje są przyciskami do kliknięcia
+   - Gdy `userVote` jest ustawione: opcje są wyłączone i pokazują paski procentowe
+4. **Obliczanie procentów:**
    ```javascript
    const calculatePercentage = (optionId) => {
      const totalVotes = results.reduce((acc, opt) => acc + opt.total_votes, 0)
@@ -477,38 +477,38 @@ The component expects `fetchEventVotes` to return:
      return (optionVotes / totalVotes) * 100
    }
    ```
-5. **Visual Feedback:**
-   - Before voting: Plain buttons
-   - After voting: Buttons show gradient background proportional to vote percentage
-   - Percentage displayed as text overlay
+5. **Informacja zwrotna wizualna:**
+   - Przed głosowaniem: zwykłe przyciski
+   - Po głosowaniu: przyciski z gradientowym tłem proporcjonalnym do procentu głosów
+   - Procent wyświetlany jako nakładka tekstowa
 
-**Time Vote Formatting:**
+**Formatowanie głosów czasowych:**
 
-For time votes, the `option_text` is in format `"YYYY-MM-DD|HH:MM|HH:MM"`. The component should format this for display, though the current implementation shows it as-is. A helper function `formatTimeOption` exists in `event-votings.jsx` but is not currently used in `VoteResultBlock`.
+Dla głosów czasowych `option_text` ma format `"YYYY-MM-DD|HH:MM|HH:MM"`. Komponent powinien formatować to do wyświetlenia, choć obecna implementacja pokazuje wartość bez zmian. Funkcja pomocnicza `formatTimeOption` istnieje w `event-votings.jsx`, ale nie jest obecnie używana w `VoteResultBlock`.
 
-**Example Display:**
-- Before vote: Clickable button with option text
-- After vote: Disabled button with:
-  - Gradient background showing percentage (e.g., 60% blue, 40% transparent)
-  - Option text
-  - Percentage label (e.g., "60%")
+**Przykład wyświetlania:**
+- Przed głosowaniem: Klikalny przycisk z tekstem opcji
+- Po głosowaniu: Wyłączony przycisk z:
+  - Gradientowym tłem pokazującym procent (np. 60% niebieski, 40% przezroczysty)
+  - Tekstem opcji
+  - Etykietą procentu (np. „60%”)
 
 ---
 
-## Data Flow Example
+## Przykład przepływu danych
 
-### Creating a Vote
+### Tworzenie głosu
 
-1. User fills out `GeneralVote` component in event creator
-2. Component returns vote object via `returnVoteDescriptor()`:
+1. Użytkownik wypełnia komponent `GeneralVote` w kreatorze wydarzenia
+2. Komponent zwraca obiekt głosu przez `returnVoteDescriptor()`:
    ```javascript
    {
      voteDescriptor: { /* ... */ },
-     options: ["Option 1", "Option 2"],
+     options: ["Opcja 1", "Opcja 2"],
      timedOption: []
    }
    ```
-3. Event creator collects all votes into `voteObjects`:
+3. Kreator wydarzenia zbiera wszystkie głosy do `voteObjects`:
    ```javascript
    {
      time: VoteObject | null,
@@ -516,89 +516,89 @@ For time votes, the `option_text` is in format `"YYYY-MM-DD|HH:MM|HH:MM"`. The c
      general: [VoteObject, ...]
    }
    ```
-4. `registerVote(voteObjects, eventId)` is called
-5. Votes are saved to database
+4. Wywoływane jest `registerVote(voteObjects, eventId)`
+5. Głosy są zapisywane do bazy danych
 
-### Displaying Votes
+### Wyświetlanie głosów
 
-1. `EventVotings` component calls `fetchEventVotes(event.id, user.id)`
-2. Server action `handleFetchVoteResultsEventUser` calls `fetchVoteResultsEventUser(eventId, userId)`
-3. Function returns array of votes with results and user's votes
-4. Component maps over votes and renders `VoteResultBlock` for each
-5. Each `VoteResultBlock` displays options and allows voting (if not already voted)
+1. Komponent `EventVotings` wywołuje `fetchEventVotes(event.id, user.id)`
+2. Akcja serwera `handleFetchVoteResultsEventUser` wywołuje `fetchVoteResultsEventUser(eventId, userId)`
+3. Funkcja zwraca tablicę głosów z wynikami i głosami użytkownika
+4. Komponent iteruje po głosach i renderuje `VoteResultBlock` dla każdego
+5. Każdy `VoteResultBlock` wyświetla opcje i umożliwia głosowanie (jeśli użytkownik jeszcze nie głosował)
 
-### Casting a Vote
+### Oddawanie głosu
 
-1. User clicks an option in `VoteResultBlock`
-2. `onCastVote(voteId, optionId)` is called
-3. Server action `handleCastGeneralVote` or `handleCastAVote` is invoked
-4. Previous vote by user is deleted (if exists)
-5. New vote is inserted
-6. Component reloads votes to show updated results
-
----
-
-## Important Notes
-
-1. **Vote Types:**
-   - `"time"`: Uses `timedOption` array, stored as pipe-delimited strings
-   - `"location"`: Uses `options` array, plain text
-   - `"general"`: Uses `options` array, plain text
-
-2. **Deadline Handling:**
-   - Stored as separate date and time in frontend
-   - Combined to ISO timestamp in database
-   - Converted back to date+time when fetched
-
-3. **Vote Validation:**
-   - Users can only vote if they are event creator or participant
-   - Votes can be closed by setting deadline to current time
-   - Once deadline passes, voting is disabled
-
-4. **Result Aggregation:**
-   - Results come from `vote_results` view/table (aggregated)
-   - Each result shows `option_id`, `option_text`, and `total_votes`
-   - Percentages are calculated client-side
-
-5. **User Vote Tracking:**
-   - `userVote` field contains the option ID the user voted for
-   - If `null`, user hasn't voted yet
-   - Used to disable voting and show results
+1. Użytkownik klika opcję w `VoteResultBlock`
+2. Wywoływane jest `onCastVote(voteId, optionId)`
+3. Wywoływana jest akcja serwera `handleCastGeneralVote` lub `handleCastAVote`
+4. Poprzedni głos użytkownika jest usuwany (jeśli istnieje)
+5. Wstawiany jest nowy głos
+6. Komponent ponownie ładuje głosy, aby pokazać zaktualizowane wyniki
 
 ---
 
-## Database Schema (Reference)
+## Ważne uwagi
 
-**votes table:**
-- `id` (UUID, primary key)
-- `event_id` (UUID, foreign key)
-- `type` (text: "time" | "location" | "general")
-- `question` (text)
-- `deadline` (timestamp with timezone)
+1. **Typy głosów:**
+   - `"time"`: Używa tablicy `timedOption`, zapisywanej jako ciągi z separatorem potoku
+   - `"location"`: Używa tablicy `options`, zwykły tekst
+   - `"general"`: Używa tablicy `options`, zwykły tekst
 
-**vote_options table:**
-- `id` (UUID, primary key)
-- `vote_id` (UUID, foreign key)
-- `option_text` (text)
+2. **Obsługa terminu:**
+   - Przechowywany jako osobna data i godzina w interfejsie
+   - Łączony w znacznik czasu ISO w bazie danych
+   - Konwertowany z powrotem na datę i godzinę przy pobieraniu
 
-**user_votes table:**
-- `user_id` (UUID, foreign key)
-- `vote_option_id` (UUID, foreign key)
+3. **Walidacja głosów:**
+   - Użytkownicy mogą głosować tylko jako twórca wydarzenia lub uczestnik
+   - Głosy można zamknąć przez ustawienie terminu na aktualny czas
+   - Po upływie terminu głosowanie jest wyłączone
 
-**vote_results view/table:**
-- Aggregated view showing vote counts per option
-- Contains: `vote_id`, `option_id`, `option_text`, `total_votes`, `question`
+4. **Agregacja wyników:**
+   - Wyniki pochodzą z widoku/tabeli `vote_results` (zagregowane)
+   - Każdy wynik zawiera `option_id`, `option_text` i `total_votes`
+   - Procenty są obliczane po stronie klienta
+
+5. **Śledzenie głosu użytkownika:**
+   - Pole `userVote` zawiera ID opcji, na którą głosował użytkownik
+   - Jeśli `null`, użytkownik jeszcze nie głosował
+   - Używane do wyłączenia głosowania i pokazania wyników
 
 ---
 
-## Summary
+## Schemat bazy danych (odniesienie)
 
-The Votes API provides a complete voting system with:
-- **Three vote types**: time, location, and general
-- **Flexible options**: Text options for general/location, timed options for time votes
-- **Result tracking**: Aggregated vote counts with percentage calculations
-- **User voting**: Single vote per user per vote (can be changed)
-- **Deadline support**: Votes can be closed at a specific date/time
-- **Anonymous voting**: Results show percentages, not individual votes
+**Tabela votes:**
+- `id` (UUID, klucz główny)
+- `event_id` (UUID, klucz obcy)
+- `type` (tekst: "time" | "location" | "general")
+- `question` (tekst)
+- `deadline` (znacznik czasu ze strefą czasową)
 
-This documentation should provide enough information for any programmer to understand and work with the voting system.
+**Tabela vote_options:**
+- `id` (UUID, klucz główny)
+- `vote_id` (UUID, klucz obcy)
+- `option_text` (tekst)
+
+**Tabela user_votes:**
+- `user_id` (UUID, klucz obcy)
+- `vote_option_id` (UUID, klucz obcy)
+
+**Widok/tabela vote_results:**
+- Widok zagregowany pokazujący liczby głosów na opcję
+- Zawiera: `vote_id`, `option_id`, `option_text`, `total_votes`, `question`
+
+---
+
+## Podsumowanie
+
+API głosowań zapewnia kompletny system głosowania z:
+- **Trzema typami głosów:** czasowy, lokalizacyjny i ogólny
+- **Elastycznymi opcjami:** opcje tekstowe dla głosów ogólnych/lokalizacyjnych, opcje czasowe dla głosów czasowych
+- **Śledzeniem wyników:** zagregowane liczby głosów z obliczaniem procentów
+- **Głosowaniem użytkowników:** jeden głos na użytkownika na głos (można zmienić)
+- **Obsługą terminu:** głosy można zamknąć w określonej dacie i godzinie
+- **Głosowaniem anonimowym:** wyniki pokazują procenty, nie pojedyncze głosy
+
+Ta dokumentacja powinna dostarczyć wystarczających informacji, aby każdy programista mógł zrozumieć i pracować z systemem głosowań.

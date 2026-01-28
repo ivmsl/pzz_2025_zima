@@ -1,3 +1,24 @@
+/**
+ * @brief Komponent modalnego okna zaproszen  
+ *
+ * Komponent modalnego okna zaproszen, pozwala na wyświetlanie listy zaproszen i akceptowanie/odrzucanie zaproszeń.
+ *
+ * @returns {JSX.Element} Komponent modalnego okna zaproszen
+ * 
+ * @param {Object} user - Użytkownik
+ * @param {boolean} open - Czy jest otwarte
+ * @param {Function} onClose - Funkcja do zamknięcia modalnego okna
+ * @param {Object} serverActions - Funkcje serwera
+ * @param {Function} onInvitationHandled - Funkcja do obsługi zaproszenia
+ *
+ * @details
+ * - Funkcja pobiera dane użytkownika za pomocą useState.
+ * - Przekazuje dane do komponentu InvitationRow.
+ * @see InvitationRow
+ * @see serverActions
+ */
+
+
 "use client"
 
 import { useState, useEffect, useRef } from "react"

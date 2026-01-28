@@ -1,3 +1,40 @@
+/**
+ * @file generalVote.jsx
+ * @brief Formularz tworzenia/edycji jednego głosowania (ogólne, lokalizacja lub czas)
+ *
+ * Obsługuje trzy typy głosowań: "general", "location" (opcje tekstowe) i "time" (opcje
+ * data + przedział czasowy). Zawiera pole pytania, opcjonalny deadline (data + godzina)
+ * oraz listę opcji (min. 2) z możliwością dodawania i usuwania. Rodzic ma dostęp przez
+ * ref do returnVoteDescriptor() i checkValidity() (useImperativeHandle).
+ *
+ * @component GeneralVote
+ * @returns {JSX.Element} Karta z formularzem głosowania i przyciskiem „Dodaj opcję”
+ *
+ * @param {Object} props
+ * @param {string} [props.eventId] - Id wydarzenia (do voteDescriptor.event_id)
+ * @param {Object} [props.voteObj] - Istniejące dane głosowania do edycji: { voteDescriptor, options?, timedOptions? }
+ * @param {string} props.type - Typ głosowania: "general" | "location" | "time"
+ * @param {React.RefObject} [props.ref] - Ref z metodami: returnVoteDescriptor(), checkValidity()
+ * @param {boolean} [props.disabled=false] - Wyłączenie pól i przycisku „Dodaj opcję”
+ * @param {Object} [props.eventStart] - { date, startTime } — do walidacji deadline (deadline musi być przed startem wydarzenia)
+ *
+ * @state {Object} voteDescriptor - id, event_id, type, question, deadline, deadlineTime
+ * @state {Array<string>} options - Opcje tekstowe (general/location); min. 2
+ * @state {Array<Object>} timedOption - Opcje czasowe (time): { date, start, end }[]; min. 2
+ *
+ * @description
+ * useImperativeHandle: returnVoteDescriptor() zwraca { voteDescriptor, options, timedOption };
+ * checkValidity() sprawdza pytanie (niepuste, ≤100 znaków), min. 2 opcje, deadline (jeśli
+ * ustawiony — oba pola; deadline przed eventStart / przed najwcześniejszą opcją time).
+ * Dla type "time" waliduje też end > start i start opcji ≥ deadline. handleChange aktualizuje
+ * voteDescriptor; addOptions dodaje opcję (GeneralOptionField dla general/location, DateTimeOptionField dla time).
+ *
+ * @see GeneralOptionField - Pole pojedynczej opcji tekstowej (@/components/votes/generalOptionField)
+ * @see DateTimeOptionField - Pole opcji data+czas (@/components/votes/dateTimeOptionField)
+ * @see Button - Przycisk „Dodaj opcję” (@/components/ui/button)
+ */
+
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";

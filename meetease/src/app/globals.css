@@ -1,3 +1,15 @@
+/**
+ * @brief Globalne style CSS dla aplikacji MeetEase
+ *
+ * Plik zawiera globalne style CSS dla aplikacji MeetEase, takie jak kolory, promienie, fonty, itp.
+ *
+ * @details
+ * - Plik zawiera style dla globalnych elementów HTML, takich jak body, div, itp.
+ * - Plik zawiera style dla komponentów Shadcn UI, takich jak Button, Input, itp.
+ * - Plik zawiera style dla komponentów Lucide, takich jak User, Calendar, itp.
+ */
+
+
 @import "tailwindcss";
 
 @plugin "tailwindcss-animate";

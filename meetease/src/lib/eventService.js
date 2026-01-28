@@ -5,11 +5,11 @@ import { cacnelPendingInvitation } from "./userService"
 import { fetchEventVotes } from "./voteService"
 
 /**
- * Check if user has access to an event
- * @param {string} userId - The user ID
- * @param {string} eventId - The event ID
- * @param {string} creatorId - The event creator ID
- * @returns {Promise<boolean>} - True if user has access
+ * Sprawdza, czy użytkownik ma dostęp do wydarzenia (twórca lub uczestnik).
+ * @param {string} userId - Identyfikator użytkownika
+ * @param {string} eventId - Identyfikator wydarzenia
+ * @param {string} creatorId - Identyfikator twórcy wydarzenia
+ * @returns {Promise<boolean>} - True, jeśli użytkownik ma dostęp
  */
 export async function checkEventAccess(userId, eventId, creatorId) {
     const supabase = await createClient()
@@ -41,7 +41,12 @@ export async function checkEventAccess(userId, eventId, creatorId) {
     return userEventAccess || isCreator
 }
 
-
+/**
+ * Usuwa użytkownika z listy uczestników wydarzenia.
+ * @param {string} eventId - Identyfikator wydarzenia
+ * @param {string} userId - Identyfikator użytkownika opuszczającego wydarzenie
+ * @returns {Promise<{success?: boolean, error?: string}>} - Obiekt z success lub komunikatem błędu
+ */
 export async function leaveEvent(eventId, userId) {
     const supabase = await createClient()
     const { error: leaveError } = await supabase
@@ -57,7 +62,11 @@ export async function leaveEvent(eventId, userId) {
     return { success: true, error: null }
 }
 
-
+/**
+ * Pobiera kod udostępniania wydarzenia z bazy.
+ * @param {string} eventId - Identyfikator wydarzenia
+ * @returns {Promise<Object|null>} - Dane kodu udostępniania lub null przy błędzie
+ */
 export async function fetchSharedCode(eventId) {
     const supabase = await createClient()
     console.log("Fetching shared code for event id:", eventId)
@@ -74,7 +83,15 @@ export async function fetchSharedCode(eventId) {
     return sharedCode
 }
 
-
+/**
+ * Dołącza użytkownika do wydarzenia na podstawie kodu zaproszenia.
+ * Wewnętrznie: (1) wyszukuje kod w tabeli event_codes, (2) weryfikuje ważność kodu i datę wygaśnięcia,
+ * (3) sprawdza, czy użytkownik nie jest już w users_events dla tego wydarzenia, (4) wstawia parę
+ * event_id–user_id do users_events.
+ * @param {string} code - Kod zaproszenia do wydarzenia
+ * @param {string} userId - Identyfikator użytkownika dołączającego
+ * @returns {Promise<{success?: boolean, error?: string}>} - Obiekt z success lub komunikatem błędu
+ */
 export async function joinEventByCode(code, userId) {
     const supabase = await createClient()
 
@@ -124,9 +141,9 @@ export async function joinEventByCode(code, userId) {
 }
 
 /**
- * Fetch event by ID
- * @param {string} eventId - The event ID
- * @returns {Promise<Object>} - Event data
+ * Pobiera wydarzenie po identyfikatorze (wraz z kodem udostępniania).
+ * @param {string} eventId - Identyfikator wydarzenia
+ * @returns {Promise<Object>} - Dane wydarzenia
  */
 export async function fetchEvent(eventId) {
     const supabase = await createClient()
@@ -155,6 +172,11 @@ export async function fetchEvent(eventId) {
     return event_with_code
 }
 
+/**
+ * Pobiera wszystkie wydarzenia powiązane z użytkownikiem (utworzone i te, w których uczestniczy).
+ * @param {string} userId - Identyfikator użytkownika
+ * @returns {Promise<Array>} - Tablica wydarzeń z uczestnikami i głosowaniami
+ */
 export async function fetchEventsByUserId(userId) {
     const { supabase, user } = await getAuthenticatedUser()
 
@@ -251,13 +273,11 @@ export async function fetchEventsByUserId(userId) {
 }
 
 /**
- * Fetch attendees for an event
- * @param {string} eventId - The event ID
- * @param {string} creatorId - The event creator ID
- * @returns {Promise<Array>} - Array of attendee objects with id and name
+ * Pobiera listę uczestników wydarzenia (dane z profili).
+ * @param {string} eventId - Identyfikator wydarzenia
+ * @param {string} creatorId - Identyfikator twórcy wydarzenia
+ * @returns {Promise<Array>} - Tablica obiektów uczestników (id, username, email)
  */
-
-
 export async function fetchEventAttendees(eventId, creatorId) {
     const supabase = await createClient()
 
@@ -292,6 +312,11 @@ export async function fetchEventAttendees(eventId, creatorId) {
     }
 }
 
+/**
+ * Pobiera listę zaproszonych do wydarzenia (zaproszenia w statusie „pending”).
+ * @param {string} eventId - Identyfikator wydarzenia
+ * @returns {Promise<Array>} - Tablica obiektów zaproszonych (id, username, email)
+ */
 export async function fetchEventInvitees(eventId) {
     const {supabase, user} = await getAuthenticatedUser()
 
@@ -324,7 +349,12 @@ export async function fetchEventInvitees(eventId) {
     }
 }
 
-
+/**
+ * Tworzy nowe wydarzenie i opcjonalnie wysyła zaproszenia do uczestników.
+ * @param {Object} eventData - Dane wydarzenia (nazwa, opis, data, godziny, lokalizacja, uczestnicy itd.)
+ * @param {string} creatorId - Identyfikator twórcy wydarzenia
+ * @returns {Promise<Object>} - Utworzone wydarzenie
+ */
 export async function createEvent(eventData, creatorId) {
     const supabase = await createClient()
     
@@ -388,11 +418,11 @@ export async function createEvent(eventData, creatorId) {
 }
 
 /**
- * Update an existing event
- * @param {string} eventId - The event ID to update
- * @param {Object} eventData - The updated event data
- * @param {string} userId - The user ID (must be the creator)
- * @returns {Promise<Object>} - Updated event data
+ * Aktualizuje istniejące wydarzenie (tylko twórca może edytować).
+ * @param {string} eventId - Identyfikator wydarzenia do aktualizacji
+ * @param {Object} eventData - Zaktualizowane dane wydarzenia
+ * @param {string} userId - Identyfikator użytkownika (musi być twórcą)
+ * @returns {Promise<Object>} - Zaktualizowane dane wydarzenia
  */
 export async function updateEvent(eventId, eventData, userId) {
     const supabase = await createClient()
@@ -514,7 +544,12 @@ export async function updateEvent(eventId, eventData, userId) {
  
 }
 
-
+/**
+ * Wysyła zaproszenie do wydarzenia dla wskazanego użytkownika.
+ * @param {string} eventId - Identyfikator wydarzenia
+ * @param {string} participantId - Identyfikator zapraszanego użytkownika
+ * @returns {Promise<void>}
+ */
 export async function inviteUserToEvent(eventId, participantId) {
     const { supabase, user } = await getAuthenticatedUser()
     const { error: inviteError } = await supabase
@@ -532,9 +567,16 @@ export async function inviteUserToEvent(eventId, participantId) {
 }
 
 /**
- * Delete an event (only creator can delete)
- * @param {string} eventId - The event ID to delete
- * @param {string} userId - The user ID (must be the creator)
+ * Usuwa wydarzenie (tylko twórca może usunąć).
+ * Wewnętrznie: 
+ * (1) weryfikuje, że użytkownik jest twórcą (pobranie creator_id z events),
+ * (2) usuwa wszystkich uczestników z users_events (błędy tylko logowane), 
+ * (3) usuwa kody
+ * z event_codes, 
+ * (4) usuwa zaproszenia z invites, (5) usuwa rekord wydarzenia z events —
+ * błąd w ostatnim kroku przerywa wykonanie i rzuca wyjątek.
+ * @param {string} eventId - Identyfikator wydarzenia do usunięcia
+ * @param {string} userId - Identyfikator użytkownika (musi być twórcą)
  * @returns {Promise<void>}
  */
 export async function deleteEvent(eventId, userId) {
@@ -598,12 +640,6 @@ export async function deleteEvent(eventId, userId) {
     console.log("Event deleted successfully", eventId)
 }
 
-/**
- * Leave an event (remove user from participants)
- * @param {string} eventId - The event ID
- * @param {string} userId - The user ID leaving the event
- * @returns {Promise<void>}
- */
 // export async function leaveEvent(eventId, userId) {
 //     const supabase = await createClient()
     
@@ -636,9 +672,9 @@ export async function deleteEvent(eventId, userId) {
 // }
 
 /**
- * Parse event time field into date and time strings
- * @param {Object} event - Event object with time and created_at fields
- * @returns {Object} - Object with eventDate and eventTime strings
+ * Parsuje pole czasu wydarzenia na osobne ciągi daty i godziny (format pl-PL).
+ * @param {Object} event - Obiekt wydarzenia z polami time i created_at
+ * @returns {Object} - Obiekt z polami eventDate i eventTime
  */
 export function parseEventDateTime(event) {
     let eventDate = ""

@@ -1,3 +1,24 @@
+/**
+ * @file generalOptionField.jsx
+ * @brief Pole opcji ogólnej w głosowaniu
+ *
+ * Renderuje pole opcji ogólnej w głosowaniu: tekst opcji. Umożliwia edycję tekstu opcji
+ * oraz usuwanie opcji.
+ *
+ * @returns {JSX.Element} Pole opcji ogólnej w głosowaniu
+ * 
+ * @param {Object} opt - Opcja ogólna
+ * @param {number} idx - Indeks opcji
+ * @param {Function} setOptions - Funkcja do ustawiania opcji
+ * @param {boolean} delDisabled - Czy przycisk usuwania jest disabled
+ * @param {boolean} disabled - Czy pole jest disabled
+ *
+ * @details
+ * - Funkcja pobiera dane użytkownika za pomocą useState.
+ * 
+ */
+
+
 import { Button } from "@/components/ui/button"
 import { Trash2 } from "lucide-react"
 

@@ -1,20 +1,25 @@
 "use server"
+/**
+ * Serwis głosowań (voteService): rejestracja głosowań przy tworzeniu wydarzenia,
+ * oddawanie głosów, pobieranie wyników i opisów głosowań. Wykorzystuje tabele
+ * votes, vote_options, user_votes oraz widok vote_results.
+ */
 import { getAuthenticatedUser } from "@/utils/auth"
 import { createClient } from "@/utils/supabase/server"
 import { dayTimeToTimestampTZ, timestampTZToDayTime } from "@/lib/timeUtils"
 
 
-// This function is used to register a vote object for the event creation process
+// Ta funkcja rejestruje obiekt(y) głosowania w procesie tworzenia wydarzenia.
 //
-// @param {Object} voteData - The vote data to register
-//  VoteData has the following structure (depending on type):
+// @param {Object} voteData - Dane głosowań do zarejestrowania
+//  voteData ma strukturę (w zależności od typu):
 // {
-//  "time", 
-//  "location",
+//   "time",
+//   "location",
 //   "general"
 // }
-// Each vote object has the following structure:
-// voteDescriptior: 
+// Każdy obiekt głosowania ma strukturę:
+// voteDescriptor:
 // {
 //     id: string,
 //     event_id: string,
@@ -23,10 +28,10 @@ import { dayTimeToTimestampTZ, timestampTZToDayTime } from "@/lib/timeUtils"
 //     deadline: string,
 //     deadlineTime: string,
 // }
-// options: string[] (options connected to the vote)
-// timedOption: {start: "", end: "", date: ""} (timed options connected to the vote)
-//}
-// @param {string} eventId - The event ID
+// options: string[] (opcje powiązane z głosowaniem)
+// timedOption: { start: "", end: "", date: "" } (opcje czasowe powiązane z głosowaniem)
+// }
+// @param {string} eventId - Identyfikator wydarzenia
 // @returns {Promise<void>}
 //
 
@@ -57,6 +62,13 @@ export async function registerVote(voteData, eventId) {
 
 }
 
+/**
+ * Tworzy jedno głosowanie w votes oraz powiązane opcje w vote_options (tekstowe lub czasowe YYYY-MM-DD|HH:MM|HH:MM).
+ * Wewnętrznie: insert do votes (event_id, type, question, deadline z dayTimeToTimestampTZ), potem _insertVoteOption dla timedOption i options.
+ * @param {Object} voteData - { voteDescriptor, options?, timedOption? }
+ * @param {string} eventId - Identyfikator wydarzenia
+ * @returns {Promise<void>}
+ */
 async function _createVote(voteData, eventId) {
     const supabase = await createClient()
     const { voteDescriptor, options, timedOption } = voteData
@@ -104,6 +116,12 @@ async function _createVote(voteData, eventId) {
 
 }
 
+/**
+ * Wstawia jedną opcję głosowania do vote_options (option jako option_text; vote_id + option_text).
+ * @param {string} voteID - Identyfikator głosowania
+ * @param {string} option - Tekst opcji (dla głosowań czasowych: "YYYY-MM-DD|HH:MM|HH:MM")
+ * @returns {Promise<void>} - Rzuca przy błędzie insert
+ */
 async function _insertVoteOption(voteID, option) {
     const supabase = await createClient()
 
@@ -121,6 +139,12 @@ async function _insertVoteOption(voteID, option) {
     }
 }
 
+/**
+ * Pobiera wszystkie głosowania wydarzenia w formacie używanych przy tworzeniu/edycji: time, location, general.
+ * Dla każdego głosowania dopisuje voteDescriptor (z deadline/deadlineTime), opcje tekstowe lub timedOptions (date, start, end).
+ * @param {string} eventId - Identyfikator wydarzenia
+ * @returns {Promise<Object>} - { time: Array, location: Array, general: Array }
+ */
 export async function fetchEventVotes(eventId) {
     let voteObjects = []
     let timeVote = []
@@ -193,6 +217,11 @@ export async function fetchEventVotes(eventId) {
     }
 }
 
+/**
+ * Pobiera deskryptory głosowań wydarzenia z votes (id, event_id, type, question, deadline) i konwertuje deadline na date+time (timestampTZToDayTime).
+ * @param {string} eventId - Identyfikator wydarzenia
+ * @returns {Promise<Array>} - Tablica obiektów { id, event_id, type, question, deadline, deadlineTime }
+ */
 async function _fetchVoteDescriptors(eventId) {
     const supabase = await createClient()
 
@@ -206,19 +235,6 @@ async function _fetchVoteDescriptors(eventId) {
         throw new Error(`Error fetching vote: ${voteError?.message || "Unknown error"}`)
     }
 
-    // voteDescriptior: 
-// {
-//     id: string,
-//     event_id: string,
-//     type: string,
-//     question: string,
-//     deadline: string,
-//     deadlineTime: string,
-// }
-    // if (vote.length !== 0) {
-        
-    // }
-    
     return vote.map((v) => {
         const {date: deadline, time: deadlineTime} = timestampTZToDayTime(v.deadline)
         return {
@@ -229,9 +245,14 @@ async function _fetchVoteDescriptors(eventId) {
             deadline: deadline,
             deadlineTime: deadlineTime,
         }
-    }) //list of vote descriptors
+    })
 }
 
+/**
+ * Pobiera opcje głosowania z vote_options (id, option_text) dla danego vote_id.
+ * @param {string} voteId - Identyfikator głosowania
+ * @returns {Promise<Array>} - Tablica { id, option_text }
+ */
 async function _fetchVoteOptions(voteId) {
     const supabase = await createClient()
     const { data: options, error: optionsError } = await supabase
@@ -245,6 +266,12 @@ async function _fetchVoteOptions(voteId) {
     return options
 }
 
+/**
+ * Sprawdza, czy użytkownik jest twórcą wydarzenia powiązanego z głosowaniem (votes → events.creator_id).
+ * @param {string} userId - Identyfikator użytkownika
+ * @param {string} voteId - Identyfikator głosowania
+ * @returns {Promise<boolean>}
+ */
 async function __checkIfVoteCreator(userId, voteId) {
     const supabase = await createClient()
     const {data: eventId, error: eventIdError} = await supabase
@@ -270,6 +297,13 @@ async function __checkIfVoteCreator(userId, voteId) {
     return eventCreator.creator_id === userId
 }
 
+/**
+ * Sprawdza, czy użytkownik może głosować: musi być twórcą wydarzenia lub uczestnikiem (users_events).
+ * Pobiera event_id z votes, potem weryfikuje users_events lub events.creator_id.
+ * @param {string} userId - Identyfikator użytkownika
+ * @param {string} voteId - Identyfikator głosowania
+ * @returns {Promise<boolean>}
+ */
 async function _checkIfUserCanVote(userId, voteId) {
     const supabase = await createClient()
     const {data: eventId, error: eventIdError} = await supabase
@@ -313,6 +347,13 @@ async function _checkIfUserCanVote(userId, voteId) {
         return ret
 }
 
+/**
+ * Oddaje głos: wstawia wpis user_votes (user_id, vote_option_id). Wcześniej sprawdza _checkIfUserCanVote; przy braku uprawnień rzuca.
+ * @param {string} voteId - Identyfikator głosowania (używany tylko do sprawdzenia uprawnień)
+ * @param {string} optionId - Identyfikator wybranej opcji (vote_options.id)
+ * @param {string} userId - Identyfikator użytkownika
+ * @returns {Promise<Object>} - Utworzony rekord z user_votes
+ */
 export async function castAVote(voteId, optionId, userId) {
     const supabase = await createClient()
 
@@ -338,6 +379,11 @@ export async function castAVote(voteId, optionId, userId) {
     return userVote
 }
 
+/**
+ * Pobiera wyniki głosowania z widoku vote_results (dla danego vote_id).
+ * @param {string} voteId - Identyfikator głosowania
+ * @returns {Promise<Array>} - Tablica wyników (np. option_id, option_text, total_votes, question)
+ */
 export async function fetchVoteVotes(voteId) {
     const supabase = await createClient()
     const { data: voteVotes, error: voteVotesError } = await supabase
@@ -351,6 +397,11 @@ export async function fetchVoteVotes(voteId) {
     return voteVotes
 }
 
+/**
+ * Pobiera wyniki wielu głosowań z vote_results i grupuje po vote_id w obiekt { [voteId]: { results: [...] } }.
+ * @param {string[]} voteIdList - Lista identyfikatorów głosowań
+ * @returns {Promise<Object>} - Obiekt voteId -> { results: [{ option_id, option_text, total_votes }] }
+ */
 async function _fetchVoteResultsBulk(voteIdList) {
     const supabase = await createClient()
     const { data: voteResults, error: voteResultsError } = await supabase
@@ -377,6 +428,12 @@ async function _fetchVoteResultsBulk(voteIdList) {
     return parsedResults
 }
 
+/**
+ * Zwraca opcję wybraną przez użytkownika w danym głosowaniu (user_votes + vote_options), lub null / {} przy braku głosu.
+ * @param {string} userId - Identyfikator użytkownika
+ * @param {string} voteId - Identyfikator głosowania
+ * @returns {Promise<Object|null>} - { id: vote_option_id, voteId, user } lub null / {}
+ */
 export async function getUserVoteByVoteID(userId, voteId) {
     const supabase = await createClient()
     const { data: userVote, error: userVoteError } = await supabase
@@ -406,6 +463,11 @@ export async function getUserVoteByVoteID(userId, voteId) {
     return {}
 }
 
+/**
+ * Pobiera wszystkie głosowania wydarzenia wraz z wynikami (z vote_results). Dla każdego głosowania wywołuje fetchVoteVotes.
+ * @param {string} eventId - Identyfikator wydarzenia
+ * @returns {Promise<Array>} - Tablica { id, question, results } (results z fetchVoteVotes)
+ */
 export async function fetchVotedVotesForEvent(eventId) {
     const supabase = await createClient()
     const { data: votes, error: votesError } = await supabase
@@ -437,6 +499,13 @@ export async function fetchVotedVotesForEvent(eventId) {
     return votesWithResults
 }
 
+/**
+ * Pobiera dla wydarzenia listę głosowań z wynikami oraz informacją, którą opcję wybrał użytkownik.
+ * Wewnętrznie: _fetchVoteDescriptors, _fetchVoteResultsBulk, dla każdego głosowania getUserVoteByVoteID.
+ * @param {string} eventId - Identyfikator wydarzenia
+ * @param {string} userId - Identyfikator użytkownika
+ * @returns {Promise<Array>} - Tablica { voteDescriptor, results, userVote (id opcji lub null) }
+ */
 export async function fetchVoteResultsEventUser(eventId, userId) {
     const voteDescriptors = await _fetchVoteDescriptors(eventId)
     .catch(error => {

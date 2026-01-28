@@ -1,3 +1,34 @@
+/**
+ * @file searcUserComponent.jsx
+ * @brief Komponent wyszukiwania i wyboru użytkowników (np. jako uczestników)
+ *
+ * Pole tekstowe z listą rozwijaną: użytkownik wpisuje zapytanie, wywoływane jest
+ * searchUsersFn(query), a wyniki (bez już wybranych) są pokazywane w dropdownie.
+ * Klik w wynik wywołuje addChosenUsers(user), czyści pole i zamyka listę.
+ *
+ * @component SearchUserComponent
+ * @returns {JSX.Element} Kontener z inputem i opcjonalnym dropdownem wyników
+ *
+ * @param {Object} props
+ * @param {Function} props.searchUsersFn - Funkcja wyszukiwania: (query: string) => Promise<Array<{id, username, email}>>
+ * @param {Function} props.addChosenUsers - Callback po wyborze użytkownika: (user) => void
+ * @param {Array<Object>} props.chosenUsers - Lista już wybranych użytkowników (po id są odfiltrowywane z wyników)
+ *
+ * @state {string} query - Wartość pola wyszukiwania
+ * @state {Array} searchResults - Wyniki zwrócone przez searchUsersFn (po odfiltrowaniu chosenUsers)
+ * @state {boolean} showDropdown - Czy lista wyników jest widoczna
+ * @state {boolean} isLoadingUsers - Stan ładowania podczas wywołania searchUsersFn
+ *
+ * @description
+ * Przy każdej zmianie query wywoływane jest doSearch() (searchUsersFn), wyniki są
+ * filtrowane tak, by pominąć użytkowników z chosenUsers. Klik w input z otwartą listą
+ * zamyka dropdown. handleParticipantSelect(user) wywołuje addChosenUsers(user), zeruje
+ * query, zamyka dropdown i czyści searchResults.
+ *
+ */
+
+
+
 import { useState } from "react";
 
 export default function SearchUserComponent({searchUsersFn, addChosenUsers, chosenUsers}) {

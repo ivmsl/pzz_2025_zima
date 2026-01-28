@@ -1,3 +1,27 @@
+/**
+ * @brief Komponent głosowań dla wydarzenia
+ *
+ * Komponent głosowań dla wydarzenia, pozwala na wyświetlanie głosowań dla wydarzenia, oddawanie głosów i zamykanie głosowań.
+ * 
+ * @param {Object} user - Użytkownik
+ * @param {Object} event - Wydarzenie
+ * @param {Function} fetchEventVotes - Funkcja do pobierania głosowań z eventu
+ * @param {Function} castVote - Funkcja do oddawania głosu
+ * @param {Function} closeVote - Funkcja do zamykania głosowania
+ * @param {Function} deleteVote - Funkcja do usuwania głosowania
+ *
+ * @returns {JSX.Element} Komponent głosowań dla wydarzenia
+ *
+ * @details
+ * - jest wykorzystywany w eventDetailsModal.jsx
+ * - Funkcja pobiera dane użytkownika za pomocą useState.
+ * - Przekazuje dane do komponentu VoteResultBlock.
+ *
+ * @see VoteResultBlock
+ * @see EventDetailsModal
+ */
+
+
 "use client"
 
 import { useEffect, useState } from "react"

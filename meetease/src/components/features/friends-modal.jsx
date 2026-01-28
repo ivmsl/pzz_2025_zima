@@ -1,3 +1,22 @@
+/**
+ * @brief Komponent modalnego okna znajomych
+ *
+ * Komponent modalnego okna znajomych, pozwala na wyświetlanie listy znajomych i wysyłanie zaproszeń.
+ *
+ * @returns {JSX.Element} Komponent modalnego okna znajomych
+ *
+ * @details
+ * - Funkcja pobiera dane użytkownika za pomocą useState.
+ * - Przekazuje dane do komponentu FriendRow.
+ * - Wyswietla liste znajomych, a takze przyciski do wyslania zaproszenia i usuniecia znajomego.
+ * 
+ * @see serverActions
+ * @see FriendRow
+ * 
+ */
+
+
+
 "use client";
 
 import { useEffect, useState, useRef } from "react";
@@ -220,7 +239,22 @@ export default function FriendsListModal({
 }
 
 /**
- * Komponent pomocniczy dla pojedynczego wiersza znajomego
+ * @brief Komponent pomocniczy dla pojedynczego wiersza znajomego
+ * 
+ * @param {Object} friend - Znajomy
+ * @param {boolean} isProcessing - Czy jest procesowanie
+ * @param {Function} onAccept - Funkcja do akceptacji zaproszenia
+ * @param {Function} onRemove - Funkcja do usuwania znajomego
+ * @param {string} type - Typ znajomego
+ * 
+ * @returns {JSX.Element} Komponent pomocniczy dla pojedynczego wiersza znajomego
+ * 
+ * @details
+ * - Wyswietla dane o znajomym, a takze przyciski do akceptacji i usuniecia znajomego.
+ * 
+ * @see serverActions
+ * 
+ * 
  */
 function FriendRow({ friend, isProcessing, onAccept, onRemove, type }) {
   return (
