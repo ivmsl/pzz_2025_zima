@@ -2,6 +2,15 @@ import { Button } from "@/components/ui/button"
 
 export default function VoteResultBlock({ voteDescriptor, results, userVote, onCastVote }) {
 
+    const formatTimeOption = (optionText) => {
+        const [date, start, end] = optionText.split("|")
+        return (
+          <>
+            <span className="text-gray-500"><b>{date}</b></span>
+            <span className="text-gray-500">{start} - {end}</span>
+          </>
+        )
+    }
 
     const calculatePercentage = (optionId) => {
         const totalVotes = results.reduce((acc, opt) => acc + opt.total_votes, 0)
@@ -61,7 +70,7 @@ export default function VoteResultBlock({ voteDescriptor, results, userVote, onC
                                 } : undefined
                             }
                             >
-                                {opt.option_text}
+                                { (voteDescriptor.type === "time") ? formatTimeOption(opt.option_text) : opt.option_text}
                                 {userVote == opt.option_id && (
                                     <span key={"your-vote" + opt.option_id} className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full">
                                         <svg className="w-3 h-3 text-blue-600 mr-1" fill="currentColor" viewBox="0 0 16 16">

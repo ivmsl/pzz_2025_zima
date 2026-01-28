@@ -29,14 +29,19 @@ export default function DashboardContent({
     }
   };
 
+  const updateDashboardContent = async () => {
+    const events = await serverActions.handleFetchEventsByUserId(user.id);
+    setEventsData(events);
+  }
+
   return (
     <div className="grid grid-cols-12 gap-6 p-2">
       <div className="col-span-8">
         <div className="flex flex-col gap-4 p-8">
           <div className="flex flex-col py-4 gap-4 justify-center">
-            {events &&
-              events.length > 0 &&
-              events.map((event) => (
+            {eventsData &&
+              eventsData.length > 0 &&
+              eventsData.map((event) => (
                 <EventCard
                   user={user}
                   event={event}
@@ -46,6 +51,12 @@ export default function DashboardContent({
               ))}
           </div>
         </div>
+        <div className="flex justify-center">
+          <Button onClick={updateDashboardContent} variant="outline" className="rounded-3xl px-20 py-6 text-xl">
+            Odśwież wydarzenia
+          </Button>
+        </div>
+        
       </div>
 
       <div className="col-span-4">

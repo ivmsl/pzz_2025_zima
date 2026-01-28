@@ -604,6 +604,12 @@ async function handleDeleteAllNotifications(userId) {
   return { success: !error, error };
 }
 
+async function handleFetchEventsByUserId(userId) {
+  "use server";
+  const events = await fetchEventsByUserId(userId);
+  return events;
+}
+
 const serverActions = {
   handleCreateEventServerAction,
   handleJoinEventServerAction,
@@ -631,5 +637,6 @@ const serverActions = {
   handleFetchNotifications,
   handleDeleteNotification,
   handleDeleteAllNotifications,
+  handleFetchEventsByUserId,
 };
 export default serverActions;
