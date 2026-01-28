@@ -3,7 +3,7 @@ import { Trash2 } from "lucide-react"
 
 export default function GeneralOptionField( { opt, idx, setOptions, delDisabled = true, disabled = false } ) {
     return (
-        <div key={idx} className="flex items-center gap-4">
+        <div key={idx} className="flex items-center gap-4 py-2">
             <input
                 type="text"
                 value={opt}

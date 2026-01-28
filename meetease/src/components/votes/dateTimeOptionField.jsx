@@ -4,7 +4,7 @@ import { Trash2 } from "lucide-react"
 export default function DateTimeOptionField( { opt, idx, setOptions, delDisabled = true, disabled = false } ) {
 
     return (
-        <div key={idx} className="grid grid-cols-3 gap-4">
+        <div key={idx} className="grid grid-cols-3 gap-4 py-2">
                           <input
                             type="date"
                             value={opt.date}

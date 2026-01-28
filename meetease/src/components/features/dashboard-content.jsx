@@ -30,79 +30,43 @@ export default function DashboardContent({
   };
 
   return (
-    <div className="p-8">
-      {/* <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-4xl font-bold mb-4">Dashboard</h1>
-          <p className="mb-4">Zalogowany jako: {user.username}</p>
+    <div className="grid grid-cols-12 gap-6 p-2">
+      <div className="col-span-8">
+        <div className="flex flex-col gap-4 p-8">
+          <div className="flex flex-col py-4 gap-4 justify-center">
+            {events &&
+              events.length > 0 &&
+              events.map((event) => (
+                <EventCard
+                  user={user}
+                  event={event}
+                  key={event.id}
+                  serverActions={serverActions}
+                />
+              ))}
+          </div>
         </div>
-        <div className="flex gap-3">
+      </div>
+
+      <div className="col-span-4">
+        <div className="flex justify-end pr-8 pt-6">
+          <div className="flex flex-col gap-6">
           <Button
-              onClick={() => setShowJoinEventModal(true)}
-          >
-            Dołącz do wydarzenia
-          </Button>
-          <Button
-            onClick={() => setShowUpcomingEvents(true)}
             variant="outline"
+            className="rounded-3xl px-20 py-6 text-xl"
+            onClick={() => setShowFriendsList(true)}
           >
+            Lista Znajomych
+          </Button>
+          <Button onClick={() => setShowUpcomingEvents(true)} variant="outline" className="rounded-3xl px-20 py-6 text-xl">
             Nadchodzące
           </Button>
-          <Button
-            onClick={() => setShowInvitations(true)}
-            variant="outline"
-          >
+          <Button onClick={() => setShowInvitations(true)} variant="outline" className="rounded-3xl px-20 py-6 text-xl">
             Zaproszenia
           </Button>
-          <Button asChild variant="outline">
-            <Link href="/settings">
-              Ustawienia
-            </Link>
-          </Button>
-          <Button
-            onClick={() => setShowEventCreator(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            Stwórz Wydarzenie
-          </Button>
+          </div>
         </div>
       </div>
-
-      <form action={logout}>
-        <Button type="submit">Wyloguj</Button>
-      </form> */}
-
-      <div className="flex flex-col gap-4 p-8">
-        <div className="flex flex-col py-4 gap-4 justify-center w-1/2">
-          {events &&
-            events.length > 0 &&
-            events.map((event) => (
-              <EventCard
-                user={user}
-                event={event}
-                key={event.id}
-                serverActions={serverActions}
-              />
-            ))}
-        </div>
-      </div>
-
-      <div className="flex-1 flex justify-end items-start pt-4 pr-8">
-        <Button
-          variant="outline"
-          className="rounded-lg px-6 py-3 text-base"
-          onClick={() => setShowFriendsList(true)}
-        >
-          Lista Znajomych
-        </Button>
-      </div>
-
-      <Button onClick={() => setShowUpcomingEvents(true)} variant="outline">
-        Nadchodzące
-      </Button>
-      <Button onClick={() => setShowInvitations(true)} variant="outline">
-        Zaproszenia
-      </Button>
 
       {showUpcomingEvents && (
         <UpcomingEventsModal
